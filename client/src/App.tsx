@@ -4,10 +4,8 @@ import { useResume } from './context/useResume';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { DashboardPage } from './pages/DashboardPage';
-import { UploadPage } from './pages/UploadPage';
 import { AnalysisPage } from './pages/AnalysisPage';
 import { ChatPage } from './pages/ChatPage';
-import { ComingSoonPage } from './pages/ComingSoonPage';
 
 const MainLayout: React.FC = () => {
   const { activeTab } = useResume();
@@ -17,18 +15,10 @@ const MainLayout: React.FC = () => {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardPage />;
-      case 'upload':
-        return <UploadPage />;
       case 'analysis':
         return <AnalysisPage />;
       case 'chat':
         return <ChatPage />;
-      case 'jd-match':
-      case 'ats-checker':
-      case 'editor':
-      case 'interview-prep':
-      case 'settings':
-        return <ComingSoonPage module={activeTab} />;
       default:
         return <DashboardPage />;
     }

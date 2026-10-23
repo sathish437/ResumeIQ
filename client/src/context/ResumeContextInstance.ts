@@ -21,7 +21,7 @@ export interface ResumeContextType {
   uploadError: string | null;
   analysisError: string | null;
   handleFileUpload: (file: File) => Promise<ResumeUploadResponse | null>;
-  handleRunAnalysis: () => Promise<ResumeAnalysisResponse | null>;
+  handleRunAnalysis: (resumeOverride?: ResumeUploadResponse | null) => Promise<ResumeAnalysisResponse | null>;
   handleReset: () => void;
 }
 

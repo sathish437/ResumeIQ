@@ -9,14 +9,8 @@ interface HeaderProps {
 
 const TAB_TITLES: Record<NavigationTab, { title: string; section: string }> = {
   dashboard: { title: 'Dashboard', section: 'Overview' },
-  upload: { title: 'Upload Resume', section: 'Documents' },
   analysis: { title: 'Resume Analysis', section: 'Intelligence' },
-  chat: { title: 'AI Resume Assistant', section: 'Conversations' },
-  'jd-match': { title: 'Job Description Match', section: 'Career Tools' },
-  'ats-checker': { title: 'ATS Checker', section: 'Compliance' },
-  editor: { title: 'Resume Editor', section: 'Drafting' },
-  'interview-prep': { title: 'Interview Preparation', section: 'Career Tools' },
-  settings: { title: 'Settings', section: 'System' },
+  chat: { title: 'AI Resume Chat', section: 'Conversations' },
 };
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {

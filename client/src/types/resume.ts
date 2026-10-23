@@ -64,15 +64,11 @@ export interface ChatMessage {
   insufficientEvidence?: boolean;
   timestamp: string;
   isError?: boolean;
+  isEdited?: boolean;
 }
 
 export type NavigationTab = 
   | 'dashboard'
-  | 'upload'
   | 'analysis'
-  | 'chat'
-  | 'jd-match'
-  | 'ats-checker'
-  | 'editor'
-  | 'interview-prep'
-  | 'settings';
+  | 'chat';
+

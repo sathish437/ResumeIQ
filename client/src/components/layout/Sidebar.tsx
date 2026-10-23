@@ -1,14 +1,8 @@
 import React from 'react';
 import {
   LayoutDashboard,
-  Upload,
   Sparkles,
   MessageSquare,
-  FileSearch,
-  CheckCircle2,
-  Edit3,
-  BookOpen,
-  Settings,
   FileText,
   RotateCcw,
   X,
@@ -71,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
 
         <div className="sidebar-content">
           <div>
-            <div className="nav-section-title">Core Platform</div>
+            <div className="nav-section-title">Navigation</div>
             <ul className="nav-list">
               <li>
                 <button
@@ -84,25 +78,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
               </li>
               <li>
                 <button
-                  className={`nav-item-btn ${activeTab === 'upload' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('upload')}
-                >
-                  <Upload size={18} className="nav-icon" />
-                  <span>Upload Resume</span>
-                  {currentResume && (
-                    <span className="nav-item-badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#34d399', borderColor: 'rgba(16, 185, 129, 0.4)' }}>
-                      Ready
-                    </span>
-                  )}
-                </button>
-              </li>
-              <li>
-                <button
                   className={`nav-item-btn ${activeTab === 'analysis' ? 'active' : ''}`}
                   onClick={() => handleNavClick('analysis')}
                 >
                   <Sparkles size={18} className="nav-icon" />
                   <span>Resume Analysis</span>
+                  {currentResume && (
+                    <span
+                      className="nav-item-badge"
+                      style={{
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        color: '#34d399',
+                        borderColor: 'rgba(16, 185, 129, 0.4)',
+                      }}
+                    >
+                      Ready
+                    </span>
+                  )}
                 </button>
               </li>
               <li>
@@ -112,62 +104,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
                 >
                   <MessageSquare size={18} className="nav-icon" />
                   <span>AI Resume Chat</span>
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <div className="nav-section-title">Upcoming Features</div>
-            <ul className="nav-list">
-              <li>
-                <button
-                  className={`nav-item-btn ${activeTab === 'jd-match' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('jd-match')}
-                >
-                  <FileSearch size={18} className="nav-icon" />
-                  <span>JD Match</span>
-                  <span className="nav-item-badge">Soon</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`nav-item-btn ${activeTab === 'ats-checker' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('ats-checker')}
-                >
-                  <CheckCircle2 size={18} className="nav-icon" />
-                  <span>ATS Checker</span>
-                  <span className="nav-item-badge">Soon</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`nav-item-btn ${activeTab === 'editor' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('editor')}
-                >
-                  <Edit3 size={18} className="nav-icon" />
-                  <span>Resume Editor</span>
-                  <span className="nav-item-badge">Soon</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`nav-item-btn ${activeTab === 'interview-prep' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('interview-prep')}
-                >
-                  <BookOpen size={18} className="nav-icon" />
-                  <span>Interview Prep</span>
-                  <span className="nav-item-badge">Soon</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`nav-item-btn ${activeTab === 'settings' ? 'active' : ''}`}
-                  onClick={() => handleNavClick('settings')}
-                >
-                  <Settings size={18} className="nav-icon" />
-                  <span>Settings</span>
-                  <span className="nav-item-badge">Soon</span>
                 </button>
               </li>
             </ul>
@@ -223,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
               <button
                 className="btn btn-primary"
                 style={{ padding: '5px 12px', fontSize: '0.75rem', marginTop: '8px', width: '100%' }}
-                onClick={() => handleNavClick('upload')}
+                onClick={() => handleNavClick('analysis')}
               >
                 Upload Now
               </button>
@@ -234,3 +170,4 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     </>
   );
 };
+

@@ -1,25 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ChangeEvent } from 'react';
 import {
   Send,
   Bot,
-  User,
   AlertCircle,
   FileText,
   RotateCcw,
-  BookmarkCheck,
-  Globe,
+  Pencil,
+  Copy,
+  Check,
+  Sparkles,
 } from 'lucide-react';
 import { useResume } from '../context/useResume';
 import { askResume } from '../api/client';
 import { createMessageId, getCurrentTimestamp } from '../utils/helpers';
-import type { ChatMessage, ResumeSource } from '../types/resume';
+import type { ChatMessage } from '../types/resume';
+import { FormattedAiResponse } from '../components/common/FormattedAiResponse';
 
 const SUGGESTED_PROMPTS = [
   'What projects are mentioned in my resume?',
-  'What are the main weaknesses or missing details?',
+  'What are the main weaknesses in my resume?',
   'How can I improve my technical skills section?',
-  "Explain my resume's strongest points.",
+  'Explain the strongest points in my resume.',
   'En resume-la enna enna projects irukku?',
   'என் ரெஸ்யூமில் உள்ள முக்கிய பலங்கள் என்ன?',
 ];
@@ -28,9 +30,19 @@ export const ChatPage: React.FC = () => {
   const { currentResume, chatMessages, setChatMessages, setActiveTab } = useResume();
   const [inputText, setInputText] = useState('');
   const [isAsking, setIsAsking] = useState(false);
-  const [lastFailedQuestion, setLastFailedQuestion] = useState<string | null>(null);
+
+  // Edit and Resend State
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Copy Feedback State
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -40,9 +52,42 @@ export const ChatPage: React.FC = () => {
     scrollToBottom();
   }, [chatMessages, isAsking]);
 
+  useEffect(() => {
+    if (editingMessageId && editTextareaRef.current) {
+      editTextareaRef.current.focus();
+      const length = editTextareaRef.current.value.length;
+      editTextareaRef.current.setSelectionRange(length, length);
+    }
+  }, [editingMessageId]);
+
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // Fallback if clipboard API is restricted
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+  };
+
+  const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setInputText(e.target.value);
+    // Auto-adjust height up to 140px
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`;
+  };
+
   const handleSend = async (questionToSend?: string) => {
     const question = (questionToSend || inputText).trim();
-    if (!question || isAsking) return;
+    if (!question || isAsking || isResending) return;
 
     if (!currentResume) {
       return;
@@ -58,7 +103,9 @@ export const ChatPage: React.FC = () => {
 
     setChatMessages((prev) => [...prev, newUserMsg]);
     setInputText('');
-    setLastFailedQuestion(null);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
     setIsAsking(true);
 
     try {
@@ -74,7 +121,6 @@ export const ChatPage: React.FC = () => {
       };
       setChatMessages((prev) => [...prev, aiMsg]);
     } catch (err: any) {
-      setLastFailedQuestion(question);
       const errorMsg: ChatMessage = {
         id: createMessageId('err'),
         sender: 'ai',
@@ -98,6 +144,103 @@ export const ChatPage: React.FC = () => {
     }
   };
 
+  // Edit and Resend Handlers
+  const handleStartEdit = (msg: ChatMessage) => {
+    if (isAsking || isResending) return;
+    setEditingMessageId(msg.id);
+    setEditingText(msg.text);
+    setEditError(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingText('');
+    setEditError(null);
+  };
+
+  const handleEditKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>, messageId: string) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSaveAndResend(messageId);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancelEdit();
+    }
+  };
+
+  const handleSaveAndResend = async (messageId: string) => {
+    const trimmed = editingText.trim();
+    if (!trimmed || isResending) return;
+
+    setIsResending(true);
+    setEditError(null);
+
+    try {
+      const response = await askResume(trimmed);
+
+      setChatMessages((prev) => {
+        const idx = prev.findIndex((m) => m.id === messageId);
+        if (idx === -1) return prev;
+
+        const updatedUserMsg: ChatMessage = {
+          ...prev[idx],
+          text: trimmed,
+          isEdited: true,
+          timestamp: getCurrentTimestamp(),
+        };
+
+        const nextMsg = prev[idx + 1];
+        if (nextMsg && nextMsg.sender === 'ai') {
+          const updatedAiMsg: ChatMessage = {
+            ...nextMsg,
+            text: response.answer,
+            sources: response.sources || [],
+            sourceReferences: response.sourceReferences || [],
+            insufficientEvidence: response.insufficientEvidence,
+            timestamp: getCurrentTimestamp(),
+            isError: false,
+          };
+          const newArr = [...prev];
+          newArr[idx] = updatedUserMsg;
+          newArr[idx + 1] = updatedAiMsg;
+          return newArr;
+        } else {
+          const newAiMsg: ChatMessage = {
+            id: createMessageId('ai'),
+            sender: 'ai',
+            text: response.answer,
+            sources: response.sources || [],
+            sourceReferences: response.sourceReferences || [],
+            insufficientEvidence: response.insufficientEvidence,
+            timestamp: getCurrentTimestamp(),
+          };
+          const newArr = [...prev];
+          newArr[idx] = updatedUserMsg;
+          newArr.splice(idx + 1, 0, newAiMsg);
+          return newArr;
+        }
+      });
+
+      setEditingMessageId(null);
+      setEditingText('');
+    } catch (err: any) {
+      // Keep edit state open with the user's edited text intact
+      setEditError(
+        err.message || 'Failed to resend question. Please try again.'
+      );
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  const formatTime = (timestamp: string) => {
+    try {
+      return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  };
+
   if (!currentResume) {
     return (
       <div style={{ maxWidth: '800px', margin: '40px auto' }}>
@@ -108,14 +251,15 @@ export const ChatPage: React.FC = () => {
             </div>
             <h2 className="empty-state-title">No Resume Uploaded</h2>
             <p className="empty-state-desc">
-              To ask questions about your resume and get evidence-grounded answers in English, Tamil, or Thanglish, please upload a resume first.
+              To ask questions about your resume and get evidence-grounded answers with citations, please upload a resume first.
             </p>
             <button
+              type="button"
               className="btn btn-primary"
-              onClick={() => setActiveTab('upload')}
+              onClick={() => setActiveTab('analysis')}
               style={{ padding: '10px 20px' }}
             >
-              Upload a Resume
+              Go to Resume Analysis
             </button>
           </div>
         </div>
@@ -124,409 +268,321 @@ export const ChatPage: React.FC = () => {
   }
 
   return (
-    <div
-      style={{
-        maxWidth: '1000px',
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        height: 'calc(100vh - 128px)',
-      }}
-    >
-      {/* Top Context Bar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-          paddingBottom: '16px',
-          borderBottom: '1px solid var(--border-main)',
-          marginBottom: '16px',
-          flexShrink: 0,
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>AI Resume Assistant</span>
-            <span className="badge badge-primary" style={{ fontSize: '0.72rem' }}>Gemini Active</span>
-          </h1>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            Active document: <strong>{currentResume.filename}</strong> ({currentResume.characterCount.toLocaleString()} chars)
+    <div className="chat-layout-wrapper">
+      {/* Compact Top Header */}
+      <header className="chat-compact-header">
+        <div className="chat-header-title-row">
+          <span className="chat-title-text">AI Resume Chat</span>
+          <span
+            className="badge badge-success"
+            style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+          >
+            <span
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--emerald-500)',
+                display: 'inline-block',
+              }}
+            />
+            <span>Assistant Online</span>
+          </span>
+          <div className="chat-resume-pill" title={currentResume.filename}>
+            <FileText size={13} style={{ flexShrink: 0 }} />
+            <span className="chat-resume-name">{currentResume.filename}</span>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <div
-            className="badge badge-gray"
-            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem' }}
-            title="Supports automatic language detection"
-          >
-            <Globe size={13} />
-            <span>English • தமிழ் • Thanglish</span>
-          </div>
-
           {chatMessages.length > 0 && (
             <button
+              type="button"
               className="btn btn-outline"
               style={{ fontSize: '0.75rem', padding: '4px 10px' }}
               onClick={() => setChatMessages([])}
+              title="Clear current chat conversation"
             >
               <RotateCcw size={13} />
               <span>Clear Chat</span>
             </button>
           )}
         </div>
-      </div>
+      </header>
 
       {/* Messages Scroll Area */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          paddingRight: '6px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '18px',
-        }}
-      >
-        {chatMessages.length === 0 ? (
-          <div style={{ margin: 'auto 0', textAlign: 'center', padding: '32px 16px' }}>
-            <div
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: 'var(--radius-full)',
-                backgroundColor: 'var(--primary-50)',
-                color: 'var(--primary-600)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px auto',
-              }}
-            >
-              <Bot size={28} />
-            </div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '6px' }}>
-              Ask Anything About Your Resume
-            </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', maxWidth: '480px', margin: '0 auto 20px auto' }}>
-              Our assistant answers questions strictly using your uploaded document and provides precise source citations. Supports English, Tamil, and Thanglish.
-            </p>
-
-            <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase' }}>
-                Suggested Prompts
+      <div className="chat-scroll-area">
+        <div className="chat-stream">
+          {chatMessages.length === 0 ? (
+            <div className="chat-welcome-container">
+              <div className="chat-welcome-icon-box">
+                <Bot size={28} />
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+              <h2 className="chat-welcome-title">Ask Anything About Your Resume</h2>
+              <p className="chat-welcome-subtitle">
+                Our AI Assistant references your uploaded resume to provide evidence-grounded answers with specific citations.
+              </p>
+
+              <div className="chat-suggestions-title">
+                Suggested Questions
+              </div>
+              <div className="chat-suggestions-grid">
                 {SUGGESTED_PROMPTS.map((prompt, idx) => (
                   <button
                     key={idx}
-                    className="btn btn-outline"
-                    style={{ fontSize: '0.8rem', padding: '6px 12px', borderRadius: 'var(--radius-full)' }}
+                    type="button"
+                    className="chat-suggestion-card"
                     onClick={() => handleSend(prompt)}
+                    disabled={isAsking}
                   >
                     <span>{prompt}</span>
+                    <Sparkles size={14} className="chat-suggestion-icon" />
                   </button>
                 ))}
               </div>
             </div>
-          </div>
-        ) : (
-          chatMessages.map((msg) => (
-            <div
-              key={msg.id}
-              style={{
-                display: 'flex',
-                gap: '12px',
-                alignItems: 'flex-start',
-                justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-              }}
-            >
-              {msg.sender === 'ai' && (
-                <div
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: msg.isError ? 'var(--rose-50)' : 'var(--primary-600)',
-                    color: msg.isError ? 'var(--rose-700)' : '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    marginTop: '2px',
-                  }}
-                >
-                  {msg.isError ? <AlertCircle size={18} /> : <Bot size={18} />}
-                </div>
-              )}
+          ) : (
+            chatMessages.map((msg) => {
+              if (msg.sender === 'user') {
+                const isEditingThis = editingMessageId === msg.id;
 
-              <div
-                style={{
-                  maxWidth: '80%',
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '14px 18px',
-                  backgroundColor:
-                    msg.sender === 'user'
-                      ? 'var(--primary-600)'
-                      : msg.isError
-                      ? 'var(--rose-50)'
-                      : 'var(--bg-surface)',
-                  color: msg.sender === 'user' ? '#ffffff' : 'var(--text-main)',
-                  border:
-                    msg.sender === 'user'
-                      ? 'none'
-                      : msg.isError
-                      ? '1px solid rgba(225, 29, 72, 0.3)'
-                      : '1px solid var(--border-main)',
-                  boxShadow: 'var(--shadow-xs)',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '0.92rem',
-                    lineHeight: 1.6,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {msg.text}
-                </div>
-
-                {/* Insufficient Evidence Notice */}
-                {msg.insufficientEvidence && (
-                  <div
-                    style={{
-                      marginTop: '10px',
-                      padding: '8px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                      border: '1px solid rgba(245, 158, 11, 0.3)',
-                      color: 'var(--amber-700)',
-                      fontSize: '0.8rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <AlertCircle size={14} />
-                    <span>The resume does not contain sufficient verified evidence to fully answer this question.</span>
-                  </div>
-                )}
-
-                {/* Evidence & Sources List */}
-                {msg.sources && msg.sources.length > 0 && (
-                  <div
-                    style={{
-                      marginTop: '12px',
-                      paddingTop: '10px',
-                      borderTop: '1px solid var(--border-subtle)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                    }}
-                  >
-                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      CITED EVIDENCE SOURCES
-                    </div>
-                    {msg.sources.map((src: ResumeSource, sIdx: number) => (
-                      <div
-                        key={sIdx}
-                        style={{
-                          backgroundColor: 'var(--slate-50)',
-                          border: '1px solid var(--border-main)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '6px 10px',
-                          fontSize: '0.8rem',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: 'var(--primary-600)', marginBottom: '2px' }}>
-                          <BookmarkCheck size={12} />
-                          <span>{src.reference}</span>
+                if (isEditingThis) {
+                  return (
+                    <div key={msg.id} className="chat-turn-user">
+                      <div className="chat-edit-box">
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            color: 'var(--text-main)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <Pencil size={13} style={{ color: 'var(--primary-600)' }} />
+                          <span>Edit Question</span>
                         </div>
-                        {src.evidence && (
-                          <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontStyle: 'italic' }}>
-                            "{src.evidence}"
+
+                        <textarea
+                          ref={editTextareaRef}
+                          className="chat-edit-textarea"
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                          onKeyDown={(e) => handleEditKeyDown(e, msg.id)}
+                          rows={3}
+                          disabled={isResending}
+                          placeholder="Edit your question..."
+                          aria-label="Edit question"
+                        />
+
+                        {editError && (
+                          <div
+                            className="alert alert-danger"
+                            style={{ padding: '8px 12px', margin: 0, fontSize: '0.82rem' }}
+                          >
+                            <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                            <span>{editError}</span>
                           </div>
                         )}
+
+                        <div className="chat-edit-actions">
+                          <span className="chat-edit-hint">
+                            <strong>Enter</strong> to save &amp; resend • <strong>Esc</strong> to cancel
+                          </span>
+                          <div className="chat-edit-btn-group">
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                              onClick={handleCancelEdit}
+                              disabled={isResending}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+                              onClick={() => handleSaveAndResend(msg.id)}
+                              disabled={!editingText.trim() || isResending}
+                            >
+                              {isResending ? (
+                                <>
+                                  <span className="spinner" style={{ width: '13px', height: '13px' }} />
+                                  <span>Resending...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Send size={13} />
+                                  <span>Save &amp; Resend</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    ))}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={msg.id} className="chat-turn-user">
+                    <div className="chat-user-row">
+                      <div className="chat-message-actions">
+                        <button
+                          type="button"
+                          className="chat-action-btn"
+                          title="Edit question"
+                          onClick={() => handleStartEdit(msg)}
+                          disabled={isAsking || isResending}
+                          aria-label="Edit question"
+                        >
+                          <Pencil size={12} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="chat-action-btn"
+                          title="Copy question"
+                          onClick={() => copyToClipboard(msg.text, msg.id)}
+                          aria-label="Copy question"
+                        >
+                          {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
+                          <span>{copiedId === msg.id ? 'Copied' : 'Copy'}</span>
+                        </button>
+                      </div>
+
+                      <div className="chat-user-bubble">
+                        {msg.text}
+                      </div>
+                    </div>
+
+                    <div className="chat-user-meta">
+                      {msg.isEdited && <span className="chat-edited-badge">(edited)</span>}
+                      <span>{formatTime(msg.timestamp)}</span>
+                    </div>
                   </div>
-                )}
+                );
+              }
 
-                <div
-                  style={{
-                    fontSize: '0.68rem',
-                    color: msg.sender === 'user' ? 'rgba(255, 255, 255, 0.7)' : 'var(--text-subtle)',
-                    marginTop: '8px',
-                    textAlign: 'right',
-                  }}
-                >
-                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              // AI Message Turn
+              return (
+                <div key={msg.id} className="chat-turn-ai">
+                  <div className={`chat-ai-avatar ${msg.isError ? 'error' : ''}`}>
+                    {msg.isError ? <AlertCircle size={18} /> : <Bot size={18} />}
+                  </div>
+
+                  <div className={`chat-ai-card ${msg.isError ? 'error' : ''}`}>
+                    {msg.isError ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            color: 'var(--rose-700)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <AlertCircle size={16} />
+                          <span>Response Error</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                          {msg.text}
+                        </p>
+                      </div>
+                    ) : (
+                      <FormattedAiResponse
+                        content={msg.text}
+                        sources={msg.sources}
+                        sourceReferences={msg.sourceReferences}
+                        insufficientEvidence={msg.insufficientEvidence}
+                      />
+                    )}
+
+                    <div className="chat-ai-meta">
+                      <span>{formatTime(msg.timestamp)}</span>
+                      {!msg.isError && (
+                        <div className="chat-message-actions">
+                          <button
+                            type="button"
+                            className="chat-action-btn"
+                            title="Copy response"
+                            onClick={() => copyToClipboard(msg.text, msg.id)}
+                            aria-label="Copy response"
+                          >
+                            {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
+                            <span>{copiedId === msg.id ? 'Copied' : 'Copy'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
+              );
+            })
+          )}
+
+          {/* AI Thinking Indicator */}
+          {isAsking && (
+            <div className="chat-turn-ai">
+              <div className="chat-ai-avatar">
+                <Bot size={18} />
               </div>
-
-              {msg.sender === 'user' && (
-                <div
+              <div className="chat-thinking-bubble">
+                <span
+                  className="spinner"
                   style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--slate-200)',
-                    color: 'var(--slate-700)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    marginTop: '2px',
+                    width: '16px',
+                    height: '16px',
+                    borderColor: 'var(--primary-600)',
+                    borderTopColor: 'transparent',
                   }}
-                >
-                  <User size={18} />
-                </div>
-              )}
+                />
+                <span>Analyzing resume evidence &amp; formulating response...</span>
+              </div>
             </div>
-          ))
-        )}
+          )}
 
-        {/* Loading Spinner Indicator */}
-        {isAsking && (
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-            <div
-              style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--primary-600)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Bot size={18} />
-            </div>
-            <div
-              className="card"
-              style={{
-                padding: '12px 18px',
-                borderRadius: 'var(--radius-lg)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-              }}
-            >
-              <span className="spinner" style={{ borderColor: 'var(--primary-600)', borderTopColor: 'transparent' }} />
-              <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
-                Analyzing resume evidence & formulating response...
-              </span>
-            </div>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      {/* Retry prompt if last failed */}
-      {lastFailedQuestion && !isAsking && (
-        <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center' }}>
-          <button
-            className="btn btn-danger-outline"
-            style={{ fontSize: '0.78rem', padding: '4px 12px' }}
-            onClick={() => handleSend(lastFailedQuestion)}
-          >
-            <RotateCcw size={12} />
-            <span>Retry: "{lastFailedQuestion}"</span>
-          </button>
-        </div>
-      )}
-
-      {/* Suggested prompts strip if messages exist */}
-      {chatMessages.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            gap: '6px',
-            overflowX: 'auto',
-            padding: '8px 0',
-            flexShrink: 0,
-          }}
-        >
-          {SUGGESTED_PROMPTS.slice(0, 4).map((prompt, idx) => (
-            <button
-              key={idx}
-              className="btn btn-secondary"
-              style={{ fontSize: '0.75rem', padding: '4px 10px', whiteSpace: 'nowrap' }}
-              onClick={() => handleSend(prompt)}
-              disabled={isAsking}
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Input Area */}
-      <div
-        style={{
-          marginTop: '8px',
-          borderTop: '1px solid var(--border-main)',
-          paddingTop: '12px',
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            gap: '10px',
-            alignItems: 'flex-end',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-main)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '8px 12px',
-            boxShadow: 'var(--shadow-sm)',
-          }}
-        >
+      {/* Fixed Bottom Input Area */}
+      <footer className="chat-input-bar-container">
+        <div className="chat-input-floating-box">
           <textarea
             ref={textareaRef}
+            className="chat-textarea"
             rows={1}
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="Ask a question about your resume (English, தமிழ், or Thanglish)..."
-            disabled={isAsking}
-            style={{
-              flex: 1,
-              border: 'none',
-              outline: 'none',
-              resize: 'none',
-              backgroundColor: 'transparent',
-              fontSize: '0.92rem',
-              color: 'var(--text-main)',
-              fontFamily: 'inherit',
-              lineHeight: 1.5,
-              maxHeight: '120px',
-            }}
+            placeholder="Ask a question about your resume (e.g. skills, projects, weaknesses)..."
+            disabled={isAsking || isResending}
+            aria-label="Ask a question about your resume"
           />
 
           <button
-            className="btn btn-primary"
-            style={{ padding: '8px 14px', borderRadius: 'var(--radius-md)' }}
+            type="button"
+            className="chat-send-btn"
             onClick={() => handleSend()}
-            disabled={!inputText.trim() || isAsking}
+            disabled={!inputText.trim() || isAsking || isResending}
             aria-label="Send message"
           >
-            {isAsking ? <span className="spinner" /> : <Send size={16} />}
+            {isAsking ? (
+              <span className="spinner" style={{ width: '16px', height: '16px' }} />
+            ) : (
+              <Send size={16} />
+            )}
           </button>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
-          <span>Press <strong>Enter</strong> to send, <strong>Shift + Enter</strong> for a new line</span>
-          <span>Conversational memory preserved across session</span>
+        <div className="chat-bottom-disclaimer">
+          ResumeIQ references your uploaded document. Conversational memory is preserved for this session.
         </div>
-      </div>
+      </footer>
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Upload,
   Sparkles,
   MessageSquare,
   FileText,
@@ -8,8 +7,10 @@ import {
   CheckCircle,
   FileCheck2,
   AlertCircle,
+  Upload,
 } from 'lucide-react';
 import { useResume } from '../context/useResume';
+import { FormattedAiResponse } from '../components/common/FormattedAiResponse';
 
 export const DashboardPage: React.FC = () => {
   const { currentResume, analysis, setActiveTab } = useResume();
@@ -37,7 +38,7 @@ export const DashboardPage: React.FC = () => {
               Intelligent, Evidence-Grounded Resume Analysis
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.98rem', maxWidth: '640px', lineHeight: 1.6 }}>
-              Upload your resume in PDF or DOCX format to receive structured intelligence, extract explicit skills, identify missing details, and converse with our AI assistant backed by Gemini.
+              Upload your resume in PDF or DOCX format to receive structured intelligence, extract explicit skills, identify missing details, and converse with our AI assistant.
             </p>
           </div>
           <div>
@@ -45,26 +46,26 @@ export const DashboardPage: React.FC = () => {
               <button
                 className="btn btn-primary"
                 style={{ padding: '12px 24px', fontSize: '0.95rem' }}
-                onClick={() => setActiveTab('upload')}
+                onClick={() => setActiveTab('analysis')}
               >
                 <Upload size={18} />
-                <span>Upload Your Resume</span>
+                <span>Upload & Analyze Resume</span>
               </button>
             ) : (
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  className="btn btn-outline"
-                  onClick={() => setActiveTab('upload')}
-                >
-                  <Upload size={16} />
-                  <span>Upload Another</span>
-                </button>
                 <button
                   className="btn btn-primary"
                   onClick={() => setActiveTab('analysis')}
                 >
                   <Sparkles size={16} />
-                  <span>View Analysis</span>
+                  <span>{analysis ? 'View Resume Analysis' : 'Run Analysis'}</span>
+                </button>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => setActiveTab('chat')}
+                >
+                  <MessageSquare size={16} />
+                  <span>AI Resume Chat</span>
                 </button>
               </div>
             )}
@@ -72,7 +73,7 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Active Resume / Current Session Card */}
+      {/* Active Resume Context Card */}
       {currentResume ? (
         <div className="card">
           <div className="card-header">
@@ -145,13 +146,6 @@ export const DashboardPage: React.FC = () => {
               <MessageSquare size={16} />
               <span>Ask AI About This Resume</span>
             </button>
-            <button
-              className="btn btn-outline"
-              onClick={() => setActiveTab('upload')}
-            >
-              <FileText size={16} />
-              <span>Inspect Extracted Text</span>
-            </button>
           </div>
         </div>
       ) : (
@@ -163,15 +157,15 @@ export const DashboardPage: React.FC = () => {
             </div>
             <h2 className="empty-state-title">No Resume Uploaded Yet</h2>
             <p className="empty-state-desc">
-              To begin analyzing your credentials, extract explicit technical skills, and converse with the AI, upload a PDF or DOCX file.
+              To begin analyzing your credentials, extract explicit technical skills, and converse with the AI assistant, upload a PDF or DOCX file.
             </p>
             <button
               className="btn btn-primary"
-              onClick={() => setActiveTab('upload')}
+              onClick={() => setActiveTab('analysis')}
               style={{ padding: '12px 24px' }}
             >
               <Upload size={18} />
-              <span>Upload Your First Resume</span>
+              <span>Go to Resume Analysis</span>
             </button>
           </div>
         </div>
@@ -187,7 +181,7 @@ export const DashboardPage: React.FC = () => {
                 <span>Recent Analysis Summary</span>
               </div>
               <div className="card-subtitle">
-                Generated via Gemini ChatClient based strictly on document evidence.
+                Generated based strictly on document evidence.
               </div>
             </div>
             <button
@@ -204,9 +198,7 @@ export const DashboardPage: React.FC = () => {
             <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
               PROFESSIONAL SUMMARY
             </div>
-            <p style={{ fontSize: '0.92rem', color: 'var(--text-main)', lineHeight: 1.6 }}>
-              {analysis.professionalSummary}
-            </p>
+            <FormattedAiResponse content={analysis.professionalSummary} />
           </div>
 
           {analysis.skills && analysis.skills.length > 0 && (
@@ -322,9 +314,9 @@ export const DashboardPage: React.FC = () => {
             >
               3
             </div>
-            <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '6px' }}>Multilingual AI Chat</h4>
+            <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '6px' }}>Conversational AI Chat</h4>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Ask questions about your resume in English, Tamil, or Thanglish. The assistant cites exact source references (e.g. Page 1) and maintains conversation memory.
+              Ask questions about your resume. The assistant cites exact source references (e.g. Page 1) and maintains conversation memory across follow-up queries.
             </p>
           </div>
         </div>

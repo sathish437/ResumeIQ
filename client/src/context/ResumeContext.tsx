@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type {
   ResumeUploadResponse,
   ResumeAnalysisResponse,
@@ -23,6 +23,13 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return null;
     }
   });
+
+  // Keep a synchronous ref to currentResume so immediate callbacks don't suffer from stale state closures
+  const currentResumeRef = useRef<ResumeUploadResponse | null>(currentResume);
+
+  useEffect(() => {
+    currentResumeRef.current = currentResume;
+  }, [currentResume]);
 
   const [analysis, setAnalysis] = useState<ResumeAnalysisResponse | null>(() => {
     try {
@@ -72,10 +79,13 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const handleFileUpload = async (file: File): Promise<ResumeUploadResponse | null> => {
     setIsUploading(true);
     setUploadError(null);
+    setAnalysisError(null);
     setUploadProgressText('Uploading document and extracting text...');
 
     try {
       const uploaded = await uploadResume(file);
+      // Synchronously update the ref before scheduling React state update
+      currentResumeRef.current = uploaded;
       setCurrentResume(uploaded);
       setAnalysis(null);
       setChatMessages([]);
@@ -89,8 +99,11 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const handleRunAnalysis = async (): Promise<ResumeAnalysisResponse | null> => {
-    if (!currentResume) {
+  const handleRunAnalysis = async (
+    resumeOverride?: ResumeUploadResponse | null
+  ): Promise<ResumeAnalysisResponse | null> => {
+    const resumeToUse = resumeOverride ?? currentResumeRef.current ?? currentResume;
+    if (!resumeToUse) {
       setAnalysisError('Please upload a resume first before running analysis.');
       return null;
     }
@@ -103,7 +116,13 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setAnalysis(result);
       return result;
     } catch (err: any) {
-      setAnalysisError(err.message || 'Failed to generate resume analysis.');
+      if (err.status === 404) {
+        setAnalysisError(
+          'Active session expired or no resume was found on the server. Please re-upload your resume.'
+        );
+      } else {
+        setAnalysisError(err.message || 'Failed to generate resume analysis.');
+      }
       return null;
     } finally {
       setIsAnalyzing(false);
@@ -112,6 +131,7 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const handleReset = () => {
     resetSessionId();
+    currentResumeRef.current = null;
     setCurrentResume(null);
     setAnalysis(null);
     setChatMessages([]);
