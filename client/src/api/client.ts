@@ -2,11 +2,28 @@ import type {
   ResumeUploadResponse,
   ResumeAskResponse,
   ResumeAnalysisResponse,
+  SkillGapAnalysisResponse,
   ApiErrorResponse,
 } from '../types/resume';
+import { getStoredAuthToken } from './authApi';
 
 const SESSION_STORAGE_KEY = 'resumeiq_session_id';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+/**
+ * Gets common headers including session ID and Authorization bearer token if available.
+ */
+function getHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = {
+    'X-Session-Id': getSessionId(),
+    ...extra,
+  };
+  const token = getStoredAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 /**
  * Gets or initializes a persistent session ID for the user's browser session.
@@ -106,9 +123,7 @@ export async function uploadResume(file: File): Promise<ResumeUploadResponse> {
   try {
     const res = await fetch(`${BASE_URL}/api/resumes/upload`, {
       method: 'POST',
-      headers: {
-        'X-Session-Id': getSessionId(),
-      },
+      headers: getHeaders(),
       credentials: 'include',
       body: formData,
     });
@@ -137,10 +152,7 @@ export async function askResume(question: string): Promise<ResumeAskResponse> {
   try {
     const res = await fetch(`${BASE_URL}/api/resumes/ask`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Session-Id': getSessionId(),
-      },
+      headers: getHeaders({ 'Content-Type': 'application/json' }),
       credentials: 'include',
       body: JSON.stringify({ question: trimmed }),
     });
@@ -164,9 +176,7 @@ export async function analyzeResume(): Promise<ResumeAnalysisResponse> {
   try {
     const res = await fetch(`${BASE_URL}/api/resumes/analyze`, {
       method: 'POST',
-      headers: {
-        'X-Session-Id': getSessionId(),
-      },
+      headers: getHeaders(),
       credentials: 'include',
     });
 
@@ -179,5 +189,75 @@ export async function analyzeResume(): Promise<ResumeAnalysisResponse> {
       'Unable to connect to the ResumeIQ server. Please check your network or ensure the server is running.',
       0
     );
+  }
+}
+
+/**
+ * Compare the uploaded resume against a target role or job description
+ */
+export async function analyzeSkillGap(
+  targetRoleOrJobDescription: string
+): Promise<SkillGapAnalysisResponse> {
+  const trimmed = targetRoleOrJobDescription.trim();
+  if (!trimmed) {
+    throw new ResumeApiError('Target role or job description cannot be empty.', 400);
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/resumes/skill-gap`, {
+      method: 'POST',
+      headers: getHeaders({ 'Content-Type': 'application/json' }),
+      credentials: 'include',
+      body: JSON.stringify({ targetRoleOrJobDescription: trimmed }),
+    });
+
+    return await handleResponse<SkillGapAnalysisResponse>(res);
+  } catch (err: unknown) {
+    if (err instanceof ResumeApiError) {
+      throw err;
+    }
+    throw new ResumeApiError(
+      'Unable to connect to the ResumeIQ server. Please check your network or ensure the server is running.',
+      0
+    );
+  }
+}
+
+/**
+ * Fetches the latest uploaded resume for the authenticated user.
+ * Returns null if the current user has not uploaded any resume yet.
+ */
+export async function fetchLatestResume(): Promise<ResumeUploadResponse | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/resumes/latest`, {
+      method: 'GET',
+      headers: getHeaders(),
+      credentials: 'include',
+    });
+
+    if (res.status === 404) {
+      return null;
+    }
+
+    return await handleResponse<ResumeUploadResponse>(res);
+  } catch (err: unknown) {
+    if (err instanceof ResumeApiError && err.status === 404) {
+      return null;
+    }
+    return null;
+  }
+}
+
+/**
+ * Deletes a resume owned by the authenticated user.
+ */
+export async function deleteResume(resumeId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/resumes/${resumeId}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+    credentials: 'include',
+  });
+  if (!res.ok && res.status !== 404) {
+    throw new ResumeApiError('Failed to delete resume', res.status);
   }
 }

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { KeyboardEvent, ChangeEvent } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Send,
   Bot,
@@ -18,12 +19,11 @@ import type { ChatMessage } from '../types/resume';
 import { FormattedAiResponse } from '../components/common/FormattedAiResponse';
 
 const SUGGESTED_PROMPTS = [
-  'What projects are mentioned in my resume?',
-  'What are the main weaknesses in my resume?',
-  'How can I improve my technical skills section?',
-  'Explain the strongest points in my resume.',
+  'What projects are detailed in my resume?',
+  'What are the strongest technical qualifications?',
+  'What key skills or certifications are missing?',
+  'How can I improve my project descriptions?',
   'En resume-la enna enna projects irukku?',
-  'என் ரெஸ்யூமில் உள்ள முக்கிய பலங்கள் என்ன?',
 ];
 
 export const ChatPage: React.FC = () => {
@@ -66,7 +66,6 @@ export const ChatPage: React.FC = () => {
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
-      // Fallback if clipboard API is restricted
       const textArea = document.createElement('textarea');
       textArea.value = text;
       document.body.appendChild(textArea);
@@ -80,18 +79,15 @@ export const ChatPage: React.FC = () => {
 
   const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setInputText(e.target.value);
-    // Auto-adjust height up to 140px
     e.target.style.height = 'auto';
-    e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`;
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
   };
 
   const handleSend = async (questionToSend?: string) => {
     const question = (questionToSend || inputText).trim();
     if (!question || isAsking || isResending) return;
 
-    if (!currentResume) {
-      return;
-    }
+    if (!currentResume) return;
 
     const userMsgId = createMessageId('user');
     const newUserMsg: ChatMessage = {
@@ -126,7 +122,7 @@ export const ChatPage: React.FC = () => {
         sender: 'ai',
         text:
           err.message ||
-          'Failed to get a response from the AI assistant. Please check your connection and try again.',
+          'Failed to receive AI response. Please check backend connection and retry.',
         timestamp: getCurrentTimestamp(),
         isError: true,
       };
@@ -144,7 +140,6 @@ export const ChatPage: React.FC = () => {
     }
   };
 
-  // Edit and Resend Handlers
   const handleStartEdit = (msg: ChatMessage) => {
     if (isAsking || isResending) return;
     setEditingMessageId(msg.id);
@@ -224,10 +219,7 @@ export const ChatPage: React.FC = () => {
       setEditingMessageId(null);
       setEditingText('');
     } catch (err: any) {
-      // Keep edit state open with the user's edited text intact
-      setEditError(
-        err.message || 'Failed to resend question. Please try again.'
-      );
+      setEditError(err.message || 'Failed to resend question. Please try again.');
     } finally {
       setIsResending(false);
     }
@@ -247,17 +239,17 @@ export const ChatPage: React.FC = () => {
         <div className="card">
           <div className="empty-state">
             <div className="empty-state-icon">
-              <FileText size={32} />
+              <FileText size={28} />
             </div>
             <h2 className="empty-state-title">No Resume Uploaded</h2>
             <p className="empty-state-desc">
-              To ask questions about your resume and get evidence-grounded answers with citations, please upload a resume first.
+              To ask questions about credentials and receive evidence-grounded answers with citations, upload a resume document first.
             </p>
             <button
               type="button"
               className="btn btn-primary"
               onClick={() => setActiveTab('analysis')}
-              style={{ padding: '10px 20px' }}
+              style={{ padding: '9px 18px' }}
             >
               Go to Resume Analysis
             </button>
@@ -273,23 +265,8 @@ export const ChatPage: React.FC = () => {
       <header className="chat-compact-header">
         <div className="chat-header-title-row">
           <span className="chat-title-text">AI Resume Chat</span>
-          <span
-            className="badge badge-success"
-            style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-          >
-            <span
-              style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--emerald-500)',
-                display: 'inline-block',
-              }}
-            />
-            <span>Assistant Online</span>
-          </span>
           <div className="chat-resume-pill" title={currentResume.filename}>
-            <FileText size={13} style={{ flexShrink: 0 }} />
+            <FileText size={12} style={{ flexShrink: 0, color: '#ef4444' }} />
             <span className="chat-resume-name">{currentResume.filename}</span>
           </div>
         </div>
@@ -299,12 +276,12 @@ export const ChatPage: React.FC = () => {
             <button
               type="button"
               className="btn btn-outline"
-              style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+              style={{ fontSize: '0.74rem', padding: '3px 8px' }}
               onClick={() => setChatMessages([])}
-              title="Clear current chat conversation"
+              title="Clear current conversation"
             >
-              <RotateCcw size={13} />
-              <span>Clear Chat</span>
+              <RotateCcw size={12} />
+              <span>Clear</span>
             </button>
           )}
         </div>
@@ -314,13 +291,18 @@ export const ChatPage: React.FC = () => {
       <div className="chat-scroll-area">
         <div className="chat-stream">
           {chatMessages.length === 0 ? (
-            <div className="chat-welcome-container">
+            <motion.div
+              className="chat-welcome-container"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
               <div className="chat-welcome-icon-box">
-                <Bot size={28} />
+                <Bot size={24} />
               </div>
-              <h2 className="chat-welcome-title">Ask Anything About Your Resume</h2>
+              <h2 className="chat-welcome-title">Resume AI Assistant</h2>
               <p className="chat-welcome-subtitle">
-                Our AI Assistant references your uploaded resume to provide evidence-grounded answers with specific citations.
+                Ask anything about your uploaded document. Answers are backed by exact segment citations and support multilingual queries.
               </p>
 
               <div className="chat-suggestions-title">
@@ -328,221 +310,221 @@ export const ChatPage: React.FC = () => {
               </div>
               <div className="chat-suggestions-grid">
                 {SUGGESTED_PROMPTS.map((prompt, idx) => (
-                  <button
+                  <motion.button
                     key={idx}
                     type="button"
                     className="chat-suggestion-card"
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => handleSend(prompt)}
                     disabled={isAsking}
                   >
                     <span>{prompt}</span>
-                    <Sparkles size={14} className="chat-suggestion-icon" />
-                  </button>
+                    <Sparkles size={13} className="chat-suggestion-icon" />
+                  </motion.button>
                 ))}
               </div>
-            </div>
+            </motion.div>
           ) : (
-            chatMessages.map((msg) => {
-              if (msg.sender === 'user') {
-                const isEditingThis = editingMessageId === msg.id;
+            <AnimatePresence initial={false}>
+              {chatMessages.map((msg) => {
+                if (msg.sender === 'user') {
+                  const isEditingThis = editingMessageId === msg.id;
 
-                if (isEditingThis) {
+                  if (isEditingThis) {
+                    return (
+                      <motion.div
+                        key={msg.id}
+                        className="chat-turn-user"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <div className="chat-edit-box">
+                          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Pencil size={12} style={{ color: '#ef4444' }} />
+                            <span>Edit Question</span>
+                          </div>
+
+                          <textarea
+                            ref={editTextareaRef}
+                            className="chat-edit-textarea"
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            onKeyDown={(e) => handleEditKeyDown(e, msg.id)}
+                            rows={2}
+                            disabled={isResending}
+                            placeholder="Edit your question..."
+                            aria-label="Edit question"
+                          />
+
+                          {editError && (
+                            <div className="alert alert-danger" style={{ padding: '6px 10px', margin: 0, fontSize: '0.78rem' }}>
+                              <AlertCircle size={13} style={{ flexShrink: 0 }} />
+                              <span>{editError}</span>
+                            </div>
+                          )}
+
+                          <div className="chat-edit-actions">
+                            <span className="chat-edit-hint">
+                              <strong>Enter</strong> to save • <strong>Esc</strong> to cancel
+                            </span>
+                            <div className="chat-edit-btn-group">
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                                onClick={handleCancelEdit}
+                                disabled={isResending}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                style={{ padding: '4px 12px', fontSize: '0.75rem' }}
+                                onClick={() => handleSaveAndResend(msg.id)}
+                                disabled={!editingText.trim() || isResending}
+                              >
+                                {isResending ? (
+                                  <>
+                                    <span className="spinner" style={{ width: '12px', height: '12px' }} />
+                                    <span>Resending...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Send size={12} />
+                                    <span>Save &amp; Resend</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  }
+
                   return (
-                    <div key={msg.id} className="chat-turn-user">
-                      <div className="chat-edit-box">
-                        <div
-                          style={{
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            color: 'var(--text-main)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                          }}
-                        >
-                          <Pencil size={13} style={{ color: 'var(--primary-600)' }} />
-                          <span>Edit Question</span>
-                        </div>
-
-                        <textarea
-                          ref={editTextareaRef}
-                          className="chat-edit-textarea"
-                          value={editingText}
-                          onChange={(e) => setEditingText(e.target.value)}
-                          onKeyDown={(e) => handleEditKeyDown(e, msg.id)}
-                          rows={3}
-                          disabled={isResending}
-                          placeholder="Edit your question..."
-                          aria-label="Edit question"
-                        />
-
-                        {editError && (
-                          <div
-                            className="alert alert-danger"
-                            style={{ padding: '8px 12px', margin: 0, fontSize: '0.82rem' }}
-                          >
-                            <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                            <span>{editError}</span>
-                          </div>
-                        )}
-
-                        <div className="chat-edit-actions">
-                          <span className="chat-edit-hint">
-                            <strong>Enter</strong> to save &amp; resend • <strong>Esc</strong> to cancel
-                          </span>
-                          <div className="chat-edit-btn-group">
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
-                              onClick={handleCancelEdit}
-                              disabled={isResending}
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              style={{ padding: '6px 14px', fontSize: '0.8rem' }}
-                              onClick={() => handleSaveAndResend(msg.id)}
-                              disabled={!editingText.trim() || isResending}
-                            >
-                              {isResending ? (
-                                <>
-                                  <span className="spinner" style={{ width: '13px', height: '13px' }} />
-                                  <span>Resending...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Send size={13} />
-                                  <span>Save &amp; Resend</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div key={msg.id} className="chat-turn-user">
-                    <div className="chat-user-row">
-                      <div className="chat-message-actions">
-                        <button
-                          type="button"
-                          className="chat-action-btn"
-                          title="Edit question"
-                          onClick={() => handleStartEdit(msg)}
-                          disabled={isAsking || isResending}
-                          aria-label="Edit question"
-                        >
-                          <Pencil size={12} />
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="chat-action-btn"
-                          title="Copy question"
-                          onClick={() => copyToClipboard(msg.text, msg.id)}
-                          aria-label="Copy question"
-                        >
-                          {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
-                          <span>{copiedId === msg.id ? 'Copied' : 'Copy'}</span>
-                        </button>
-                      </div>
-
-                      <div className="chat-user-bubble">
-                        {msg.text}
-                      </div>
-                    </div>
-
-                    <div className="chat-user-meta">
-                      {msg.isEdited && <span className="chat-edited-badge">(edited)</span>}
-                      <span>{formatTime(msg.timestamp)}</span>
-                    </div>
-                  </div>
-                );
-              }
-
-              // AI Message Turn
-              return (
-                <div key={msg.id} className="chat-turn-ai">
-                  <div className={`chat-ai-avatar ${msg.isError ? 'error' : ''}`}>
-                    {msg.isError ? <AlertCircle size={18} /> : <Bot size={18} />}
-                  </div>
-
-                  <div className={`chat-ai-card ${msg.isError ? 'error' : ''}`}>
-                    {msg.isError ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            color: 'var(--rose-700)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                          }}
-                        >
-                          <AlertCircle size={16} />
-                          <span>Response Error</span>
-                        </div>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-                          {msg.text}
-                        </p>
-                      </div>
-                    ) : (
-                      <FormattedAiResponse
-                        content={msg.text}
-                        sources={msg.sources}
-                        sourceReferences={msg.sourceReferences}
-                        insufficientEvidence={msg.insufficientEvidence}
-                      />
-                    )}
-
-                    <div className="chat-ai-meta">
-                      <span>{formatTime(msg.timestamp)}</span>
-                      {!msg.isError && (
+                    <motion.div
+                      key={msg.id}
+                      className="chat-turn-user"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <div className="chat-user-row">
                         <div className="chat-message-actions">
                           <button
                             type="button"
                             className="chat-action-btn"
-                            title="Copy response"
-                            onClick={() => copyToClipboard(msg.text, msg.id)}
-                            aria-label="Copy response"
+                            title="Edit question"
+                            onClick={() => handleStartEdit(msg)}
+                            disabled={isAsking || isResending}
+                            aria-label="Edit question"
                           >
-                            {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
+                            <Pencil size={11} />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="chat-action-btn"
+                            title="Copy question"
+                            onClick={() => copyToClipboard(msg.text, msg.id)}
+                            aria-label="Copy question"
+                          >
+                            {copiedId === msg.id ? <Check size={11} style={{ color: 'var(--emerald-500)' }} /> : <Copy size={11} />}
                             <span>{copiedId === msg.id ? 'Copied' : 'Copy'}</span>
                           </button>
                         </div>
-                      )}
+
+                        <div className="chat-user-bubble">
+                          {msg.text}
+                        </div>
+                      </div>
+
+                      <div className="chat-user-meta">
+                        {msg.isEdited && <span className="chat-edited-badge">(edited)</span>}
+                        <span>{formatTime(msg.timestamp)}</span>
+                      </div>
+                    </motion.div>
+                  );
+                }
+
+                // AI Message Turn
+                return (
+                  <motion.div
+                    key={msg.id}
+                    className="chat-turn-ai"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <div className={`chat-ai-avatar ${msg.isError ? 'error' : ''}`}>
+                      {msg.isError ? <AlertCircle size={16} /> : <Bot size={16} />}
                     </div>
-                  </div>
-                </div>
-              );
-            })
+
+                    <div className={`chat-ai-card ${msg.isError ? 'error' : ''}`}>
+                      {msg.isError ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--rose-text)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}>
+                            <AlertCircle size={14} />
+                            <span>Response Error</span>
+                          </div>
+                          <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                            {msg.text}
+                          </p>
+                        </div>
+                      ) : (
+                        <FormattedAiResponse
+                          content={msg.text}
+                          sources={msg.sources}
+                          sourceReferences={msg.sourceReferences}
+                          insufficientEvidence={msg.insufficientEvidence}
+                          collapsibleSources={true}
+                          documentName={currentResume?.filename}
+                        />
+                      )}
+
+                      <div className="chat-ai-meta">
+                        <span>{formatTime(msg.timestamp)}</span>
+                        {!msg.isError && (
+                          <div className="chat-message-actions">
+                            <button
+                              type="button"
+                              className="chat-action-btn"
+                              title="Copy response"
+                              onClick={() => copyToClipboard(msg.text, msg.id)}
+                              aria-label="Copy response"
+                            >
+                              {copiedId === msg.id ? <Check size={11} style={{ color: 'var(--emerald-500)' }} /> : <Copy size={11} />}
+                              <span>{copiedId === msg.id ? 'Copied' : 'Copy'}</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           )}
 
           {/* AI Thinking Indicator */}
           {isAsking && (
-            <div className="chat-turn-ai">
+            <motion.div
+              className="chat-turn-ai"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.12 }}
+            >
               <div className="chat-ai-avatar">
-                <Bot size={18} />
+                <Bot size={16} />
               </div>
               <div className="chat-thinking-bubble">
-                <span
-                  className="spinner"
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    borderColor: 'var(--primary-600)',
-                    borderTopColor: 'transparent',
-                  }}
-                />
-                <span>Analyzing resume evidence &amp; formulating response...</span>
+                <span className="spinner" style={{ width: '14px', height: '14px' }} />
+                <span>Formulating response with document evidence...</span>
               </div>
-            </div>
+            </motion.div>
           )}
 
           <div ref={messagesEndRef} />
@@ -564,25 +546,28 @@ export const ChatPage: React.FC = () => {
             aria-label="Ask a question about your resume"
           />
 
-          <button
+          <motion.button
             type="button"
             className="chat-send-btn"
+            whileTap={{ scale: 0.95 }}
             onClick={() => handleSend()}
             disabled={!inputText.trim() || isAsking || isResending}
             aria-label="Send message"
           >
             {isAsking ? (
-              <span className="spinner" style={{ width: '16px', height: '16px' }} />
+              <span className="spinner" style={{ width: '14px', height: '14px', borderColor: 'rgba(255,255,255,0.4)', borderTopColor: '#fff' }} />
             ) : (
-              <Send size={16} />
+              <Send size={14} />
             )}
-          </button>
+          </motion.button>
         </div>
 
         <div className="chat-bottom-disclaimer">
-          ResumeIQ references your uploaded document. Conversational memory is preserved for this session.
+          Grounded in document evidence. Sources stay collapsed by default.
         </div>
       </footer>
     </div>
   );
 };
+
+export default ChatPage;

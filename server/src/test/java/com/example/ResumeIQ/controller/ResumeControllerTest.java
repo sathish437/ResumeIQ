@@ -3,6 +3,8 @@ package com.example.ResumeIQ.controller;
 import com.example.ResumeIQ.config.UploadConfig;
 import com.example.ResumeIQ.domain.ResumeDocument;
 import com.example.ResumeIQ.domain.ResumeSegment;
+import com.example.ResumeIQ.dto.response.SkillGapAnalysisResponse;
+import com.example.ResumeIQ.dto.response.StructuredSkillGapAnalysis;
 import com.example.ResumeIQ.exception.GlobalExceptionHandler;
 import com.example.ResumeIQ.extraction.DocumentValidator;
 import com.example.ResumeIQ.extraction.DocxTextExtractor;
@@ -59,6 +61,7 @@ class ResumeControllerTest {
     private static final String UPLOAD_ENDPOINT = "/api/resumes/upload";
     private static final String ASK_ENDPOINT = "/api/resumes/ask";
     private static final String ANALYZE_ENDPOINT = "/api/resumes/analyze";
+    private static final String SKILL_GAP_ENDPOINT = "/api/resumes/skill-gap";
 
     @Autowired
     private MockMvc mockMvc;
@@ -411,6 +414,67 @@ class ResumeControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.field").value("resumeId"));
+    }
+
+    @Test
+    void skillGapWithoutResumeReturns404() throws Exception {
+        mockMvc.perform(post(SKILL_GAP_ENDPOINT)
+                        .session(new MockHttpSession())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"targetRoleOrJobDescription":"Senior Java Engineer"}"""))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.field").value("resumeId"));
+    }
+
+    @Test
+    void skillGapWithBlankTargetRoleReturns400() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        mockMvc.perform(multipart(UPLOAD_ENDPOINT)
+                        .file(pdf("Jane Doe Java Developer"))
+                        .session(session))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post(SKILL_GAP_ENDPOINT)
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"targetRoleOrJobDescription":"   "}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.field").value("targetRoleOrJobDescription"));
+    }
+
+    @Test
+    void skillGapWithValidResumeAndRoleReturns200() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        mockMvc.perform(multipart(UPLOAD_ENDPOINT)
+                        .file(pdf("Jane Doe Java Developer"))
+                        .session(session))
+                .andExpect(status().isOk());
+
+        StructuredSkillGapAnalysis mockResult = new StructuredSkillGapAnalysis(
+                100,
+                List.of(new SkillGapAnalysisResponse.MatchedSkill(
+                        "Java", List.of("Billing"), "Used in billing")),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        when(chatClient.prompt().system(anyString()).user(anyString()).call().entity(StructuredSkillGapAnalysis.class))
+                .thenReturn(mockResult);
+
+        mockMvc.perform(post(SKILL_GAP_ENDPOINT)
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"targetRoleOrJobDescription":"Java Developer"}"""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.matchPercentage").value(100))
+                .andExpect(jsonPath("$.matchedSkills[0].skill").value("Java"))
+                .andExpect(jsonPath("$.targetRoleOrJobDescription").value("Java Developer"));
     }
 
     private ResumeDocument sampleResume(String id) {

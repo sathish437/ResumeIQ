@@ -1,5 +1,6 @@
 package com.example.ResumeIQ.service;
 
+import com.example.ResumeIQ.domain.AppUser;
 import com.example.ResumeIQ.domain.ResumeDocument;
 import com.example.ResumeIQ.domain.ResumeSegment;
 import com.example.ResumeIQ.dto.request.ResumeAskRequest;
@@ -156,6 +157,35 @@ public class ResumeQaService {
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
     }
 
+    public ResumeAskResponse ask(ResumeAskRequest request, AppUser user) {
+        String question = requireText(request == null ? null : request.question(),
+                "question", "Question must not be blank.");
+
+        if (user == null || user.id() == null) {
+            return ask(request);
+        }
+
+        ResumeDocument resume = resumeRepository.findLatestByUserId(user.id())
+                .orElseThrow(ResumeNotFoundException::noResumeUploaded);
+
+        return askGrounded(resume, question, user.id());
+    }
+
+    public ResumeAskResponse ask(String resumeId, ResumeAskRequest request, AppUser user) {
+        String question = requireText(request == null ? null : request.question(),
+                "question", "Question must not be blank.");
+        String targetResumeId = requireText(resumeId, "resumeId", "Resume id is required.");
+
+        if (user == null || user.id() == null) {
+            return ask(targetResumeId, request);
+        }
+
+        ResumeDocument resume = resumeRepository.findByIdAndUserId(targetResumeId, user.id())
+                .orElseThrow(() -> new ResumeNotFoundException(targetResumeId));
+
+        return askGrounded(resume, question, user.id());
+    }
+
     public ResumeAskResponse ask(ResumeAskRequest request) {
         String question = requireText(request == null ? null : request.question(),
                 "question", "Question must not be blank.");
@@ -165,7 +195,7 @@ public class ResumeQaService {
         ResumeDocument resume = resumeRepository.findById(resumeId)
                 .orElseThrow(() -> new ResumeNotFoundException(resumeId));
 
-        return askGrounded(resume, question);
+        return askGrounded(resume, question, null);
     }
 
     public ResumeAskResponse ask(String resumeId, ResumeAskRequest request) {
@@ -176,11 +206,17 @@ public class ResumeQaService {
         ResumeDocument resume = resumeRepository.findById(targetResumeId)
                 .orElseThrow(() -> new ResumeNotFoundException(targetResumeId));
 
-        return askGrounded(resume, question);
+        return askGrounded(resume, question, null);
     }
 
     private ResumeAskResponse askGrounded(ResumeDocument resume, String question) {
-        String conversationId = sessionContext.getConversationId();
+        return askGrounded(resume, question, null);
+    }
+
+    private ResumeAskResponse askGrounded(ResumeDocument resume, String question, String userId) {
+        String conversationId = userId != null && !userId.isBlank()
+                ? sessionContext.getConversationId(userId, resume.id())
+                : sessionContext.getConversationId();
         ResumeAskStructuredOutput modelOutput = askModel(resume, question, conversationId);
 
         List<ResumeSource> validatedSources = validateSources(modelOutput, resume);

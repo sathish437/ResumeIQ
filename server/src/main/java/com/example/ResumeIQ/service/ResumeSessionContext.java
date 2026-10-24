@@ -13,8 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Tracks the most recently uploaded resume for each user or session context.
- * Resolves the session from the active HTTP request (via HttpSession or X-Session-Id header),
- * with support for thread-local or explicit context for non-web environments and tests.
+ * Strictly isolates conversation memory and resume references per authenticated user.
  */
 @Component
 public class ResumeSessionContext {
@@ -22,14 +21,28 @@ public class ResumeSessionContext {
     public static final String SESSION_RESUME_ATTR = "RESUME_IQ_CURRENT_RESUME_ID";
     public static final String SESSION_HEADER = "X-Session-Id";
 
+    private final Map<String, String> userResumeMap = new ConcurrentHashMap<>();
     private final Map<String, String> sessionResumeMap = new ConcurrentHashMap<>();
     private final ThreadLocal<String> threadLocalResumeId = new ThreadLocal<>();
     private final ThreadLocal<String> threadLocalConversationId = new ThreadLocal<>();
 
     /**
-     * Resolves a stable conversation identifier associated with the user/session context.
-     * Incorporates the active resume ID so that distinct resumes uploaded within the same
-     * session do not share or leak conversation memory.
+     * Resolves a user-scoped, resume-scoped conversation identifier.
+     * Prevents distinct users from sharing or leaking conversational memory.
+     */
+    public String getConversationId(String userId, String resumeId) {
+        String customConvId = threadLocalConversationId.get();
+        if (customConvId != null && !customConvId.isBlank()) {
+            return customConvId;
+        }
+        if (userId != null && !userId.isBlank() && resumeId != null && !resumeId.isBlank()) {
+            return "user-" + userId.strip() + ":resume-" + resumeId.strip();
+        }
+        return getConversationId();
+    }
+
+    /**
+     * Resolves a conversation identifier associated with the user/session context.
      */
     public String getConversationId() {
         String customConvId = threadLocalConversationId.get();
@@ -70,7 +83,17 @@ public class ResumeSessionContext {
     }
 
     /**
-     * Stores the resume id as the most recently uploaded resume for the current session/user context.
+     * Stores the resume id as the most recently uploaded resume for an authenticated user.
+     */
+    public void setRecentResumeId(String userId, String resumeId) {
+        if (userId != null && !userId.isBlank() && resumeId != null && !resumeId.isBlank()) {
+            userResumeMap.put(userId.strip(), resumeId.strip());
+        }
+        setRecentResumeId(resumeId);
+    }
+
+    /**
+     * Stores the resume id as the most recently uploaded resume for the current session/thread.
      */
     public void setRecentResumeId(String resumeId) {
         if (resumeId == null || resumeId.isBlank()) {
@@ -91,7 +114,20 @@ public class ResumeSessionContext {
     }
 
     /**
-     * Resolves the most recently uploaded resume id for the current session/user context.
+     * Resolves the most recently uploaded resume id for a given user.
+     */
+    public Optional<String> getRecentResumeId(String userId) {
+        if (userId != null && !userId.isBlank()) {
+            String resumeId = userResumeMap.get(userId.strip());
+            if (resumeId != null && !resumeId.isBlank()) {
+                return Optional.of(resumeId);
+            }
+        }
+        return getRecentResumeId();
+    }
+
+    /**
+     * Resolves the most recently uploaded resume id for the current session/thread.
      */
     public Optional<String> getRecentResumeId() {
         HttpServletRequest request = currentHttpRequest();
@@ -148,12 +184,13 @@ public class ResumeSessionContext {
     }
 
     /**
-     * Clears current thread and session mappings.
+     * Clears current thread, user, and session mappings.
      */
     public void clear() {
         threadLocalResumeId.remove();
         threadLocalConversationId.remove();
         sessionResumeMap.clear();
+        userResumeMap.clear();
     }
 
     private HttpServletRequest currentHttpRequest() {

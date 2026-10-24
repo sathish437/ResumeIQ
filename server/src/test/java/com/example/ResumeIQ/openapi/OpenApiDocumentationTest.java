@@ -123,6 +123,18 @@ class OpenApiDocumentationTest {
         }
     }
 
+    @Test
+    void documentsSkillGapResponses() {
+        String skillGapEndpoint = "/api/resumes/skill-gap";
+        for (String code : List.of("200", "400", "404", "502", "500")) {
+            Map<String, Object> response = apiDocs.read(
+                    "$.paths['" + skillGapEndpoint + "'].post.responses['" + code + "']");
+            assertThat(response)
+                    .as("skill-gap response %s is documented", code)
+                    .isNotNull();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> readSchema(String endpoint, String mediaType) {
         Map<String, Object> schema = apiDocs.read(

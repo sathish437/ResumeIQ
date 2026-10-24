@@ -13,17 +13,15 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Stores uploaded resumes and their citable segments. Resumes are written to
- * the database so their content stays available across requests and across
- * application restarts.
+ * Stores uploaded resumes and their citable segments, scoped by user_id for strict isolation.
  */
 @Repository
 public class ResumeRepository {
 
     private static final String INSERT_RESUME = """
-            INSERT INTO resume (id, filename, file_type, status, character_count,
+            INSERT INTO resume (id, user_id, filename, file_type, status, character_count,
                                 segment_count, full_text, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     private static final String INSERT_SEGMENT = """
@@ -32,8 +30,27 @@ public class ResumeRepository {
             """;
 
     private static final String SELECT_RESUME = """
-            SELECT id, filename, file_type, status, character_count, full_text, created_at
+            SELECT id, user_id, filename, file_type, status, character_count, full_text, created_at
             FROM resume WHERE id = ?
+            """;
+
+    private static final String SELECT_RESUME_BY_ID_AND_USER = """
+            SELECT id, user_id, filename, file_type, status, character_count, full_text, created_at
+            FROM resume WHERE id = ? AND user_id = ?
+            """;
+
+    private static final String SELECT_LATEST_RESUME_BY_USER = """
+            SELECT id, user_id, filename, file_type, status, character_count, full_text, created_at
+            FROM resume WHERE user_id = ? ORDER BY created_at DESC LIMIT 1
+            """;
+
+    private static final String SELECT_ALL_BY_USER = """
+            SELECT id, user_id, filename, file_type, status, character_count, full_text, created_at
+            FROM resume WHERE user_id = ? ORDER BY created_at DESC
+            """;
+
+    private static final String DELETE_RESUME_BY_ID_AND_USER = """
+            DELETE FROM resume WHERE id = ? AND user_id = ?
             """;
 
     private static final String SELECT_SEGMENTS = """
@@ -51,6 +68,7 @@ public class ResumeRepository {
     public void save(ResumeDocument resume) {
         jdbcTemplate.update(INSERT_RESUME,
                 resume.id(),
+                resume.userId(),
                 resume.filename(),
                 resume.fileType(),
                 resume.status(),
@@ -73,27 +91,72 @@ public class ResumeRepository {
         if (rows.isEmpty()) {
             return Optional.empty();
         }
-        ResumeRow row = rows.get(0);
+        return Optional.of(toDomain(rows.get(0)));
+    }
+
+    public Optional<ResumeDocument> findByIdAndUserId(String id, String userId) {
+        if (userId == null || userId.isBlank()) {
+            return Optional.empty();
+        }
+        List<ResumeRow> rows = jdbcTemplate.query(SELECT_RESUME_BY_ID_AND_USER, ResumeRepository::mapRow, id, userId);
+        if (rows.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(toDomain(rows.get(0)));
+    }
+
+    public Optional<ResumeDocument> findLatestByUserId(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return Optional.empty();
+        }
+        List<ResumeRow> rows = jdbcTemplate.query(SELECT_LATEST_RESUME_BY_USER, ResumeRepository::mapRow, userId);
+        if (rows.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(toDomain(rows.get(0)));
+    }
+
+    public List<ResumeDocument> findAllByUserId(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return List.of();
+        }
+        List<ResumeRow> rows = jdbcTemplate.query(SELECT_ALL_BY_USER, ResumeRepository::mapRow, userId);
+        return rows.stream().map(this::toDomain).toList();
+    }
+
+    @Transactional
+    public boolean deleteByIdAndUserId(String id, String userId) {
+        if (userId == null || userId.isBlank()) {
+            return false;
+        }
+        int deleted = jdbcTemplate.update(DELETE_RESUME_BY_ID_AND_USER, id, userId);
+        return deleted > 0;
+    }
+
+    private ResumeDocument toDomain(ResumeRow row) {
         List<ResumeSegment> segments = jdbcTemplate.query(SELECT_SEGMENTS,
                 (resultSet, rowNumber) -> new ResumeSegment(
                         resultSet.getString("reference_label"),
                         resultSet.getInt("segment_index"),
                         resultSet.getString("segment_text")),
-                id);
-        return Optional.of(new ResumeDocument(
+                row.id());
+
+        return new ResumeDocument(
                 row.id(),
+                row.userId(),
                 row.filename(),
                 row.fileType(),
                 row.status(),
                 row.characterCount(),
                 segments,
                 row.fullText(),
-                row.createdAt()));
+                row.createdAt());
     }
 
     private static ResumeRow mapRow(ResultSet resultSet, int rowNumber) throws SQLException {
         return new ResumeRow(
                 resultSet.getString("id"),
+                resultSet.getString("user_id"),
                 resultSet.getString("filename"),
                 resultSet.getString("file_type"),
                 resultSet.getString("status"),
@@ -104,6 +167,7 @@ public class ResumeRepository {
 
     private record ResumeRow(
             String id,
+            String userId,
             String filename,
             String fileType,
             String status,

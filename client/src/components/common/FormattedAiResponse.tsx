@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookmarkCheck, AlertCircle } from 'lucide-react';
+import { BookmarkCheck, AlertCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import type { ResumeSource } from '../../types/resume';
 
 export interface FormattedAiResponseProps {
@@ -8,6 +8,8 @@ export interface FormattedAiResponseProps {
   sourceReferences?: string[];
   insufficientEvidence?: boolean;
   className?: string;
+  collapsibleSources?: boolean;
+  documentName?: string;
 }
 
 /**
@@ -246,7 +248,12 @@ export const FormattedAiResponse: React.FC<FormattedAiResponseProps> = ({
   sourceReferences,
   insufficientEvidence,
   className = '',
+  collapsibleSources = false,
+  documentName,
 }) => {
+  const [isSourcesExpanded, setIsSourcesExpanded] = React.useState(false);
+  const sourcesId = React.useId();
+
   // Deduplicate sources by reference and evidence
   const validSources = React.useMemo(() => {
     if (!sources || sources.length === 0) return [];
@@ -265,6 +272,8 @@ export const FormattedAiResponse: React.FC<FormattedAiResponseProps> = ({
   }, [sources]);
 
   const hasSources = validSources.length > 0;
+  const sourcesCount = validSources.length > 0 ? validSources.length : (sourceReferences?.length || 0);
+  const hasAnySources = sourcesCount > 0;
   const processedText = React.useMemo(
     () => preprocessMarkdown(content, hasSources),
     [content, hasSources]
@@ -365,46 +374,111 @@ export const FormattedAiResponse: React.FC<FormattedAiResponseProps> = ({
       </div>
 
       {/* Structured Source Citations & Evidence Section */}
-      {hasSources && (
-        <div className="ai-evidence-container">
-          <div className="ai-evidence-header">
-            <BookmarkCheck size={14} className="ai-evidence-icon" />
-            <span className="ai-evidence-title">
-              Cited Evidence Sources ({validSources.length})
-            </span>
-          </div>
-          <div className="ai-evidence-list">
-            {validSources.map((src, sIdx) => (
-              <div key={sIdx} className="ai-evidence-card">
-                <div className="ai-evidence-ref-pill">
-                  {src.reference}
-                </div>
-                {src.evidence && (
-                  <div className="ai-evidence-quote">
-                    “{src.evidence}”
+      {collapsibleSources ? (
+        hasAnySources && (
+          <div className="chat-sources-disclosure">
+            <button
+              type="button"
+              className="chat-sources-toggle-btn"
+              onClick={() => setIsSourcesExpanded((prev) => !prev)}
+              aria-expanded={isSourcesExpanded}
+              aria-controls={sourcesId}
+              title={isSourcesExpanded ? 'Collapse sources' : `Expand sources (${sourcesCount})`}
+            >
+              <BookmarkCheck size={13} className="chat-sources-toggle-icon" />
+              <span className="chat-sources-toggle-label">
+                {isSourcesExpanded ? `Hide Sources (${sourcesCount})` : `View Sources (${sourcesCount})`}
+              </span>
+              {isSourcesExpanded ? (
+                <ChevronUp size={13} className="chat-sources-chevron" />
+              ) : (
+                <ChevronDown size={13} className="chat-sources-chevron" />
+              )}
+            </button>
+
+            {isSourcesExpanded && (
+              <div id={sourcesId} className="chat-sources-expanded-area">
+                {hasSources ? (
+                  <div className="ai-evidence-list">
+                    {validSources.map((src, sIdx) => (
+                      <div key={sIdx} className="ai-evidence-card">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          {documentName && (
+                            <span className="ai-evidence-doc-pill">
+                              <FileText size={11} />
+                              <span>{documentName}</span>
+                            </span>
+                          )}
+                          {src.reference && (
+                            <div className="ai-evidence-ref-pill">
+                              {src.reference}
+                            </div>
+                          )}
+                        </div>
+                        {src.evidence && (
+                          <div className="ai-evidence-quote">
+                            “{src.evidence}”
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="ai-evidence-pills-row">
+                    {Array.from(new Set(sourceReferences)).map((ref, rIdx) => (
+                      <span key={rIdx} className="ai-evidence-ref-pill">
+                        {ref}
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>
-            ))}
+            )}
           </div>
-        </div>
-      )}
+        )
+      ) : (
+        <>
+          {hasSources && (
+            <div className="ai-evidence-container">
+              <div className="ai-evidence-header">
+                <BookmarkCheck size={14} className="ai-evidence-icon" />
+                <span className="ai-evidence-title">
+                  Cited Evidence Sources ({validSources.length})
+                </span>
+              </div>
+              <div className="ai-evidence-list">
+                {validSources.map((src, sIdx) => (
+                  <div key={sIdx} className="ai-evidence-card">
+                    <div className="ai-evidence-ref-pill">
+                      {src.reference}
+                    </div>
+                    {src.evidence && (
+                      <div className="ai-evidence-quote">
+                        “{src.evidence}”
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* If sources array is empty but sourceReferences strings exist */}
-      {!hasSources && sourceReferences && sourceReferences.length > 0 && (
-        <div className="ai-evidence-container">
-          <div className="ai-evidence-header">
-            <BookmarkCheck size={14} className="ai-evidence-icon" />
-            <span className="ai-evidence-title">Cited References</span>
-          </div>
-          <div className="ai-evidence-pills-row">
-            {Array.from(new Set(sourceReferences)).map((ref, rIdx) => (
-              <span key={rIdx} className="ai-evidence-ref-pill">
-                {ref}
-              </span>
-            ))}
-          </div>
-        </div>
+          {!hasSources && sourceReferences && sourceReferences.length > 0 && (
+            <div className="ai-evidence-container">
+              <div className="ai-evidence-header">
+                <BookmarkCheck size={14} className="ai-evidence-icon" />
+                <span className="ai-evidence-title">Cited References</span>
+              </div>
+              <div className="ai-evidence-pills-row">
+                {Array.from(new Set(sourceReferences)).map((ref, rIdx) => (
+                  <span key={rIdx} className="ai-evidence-ref-pill">
+                    {ref}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

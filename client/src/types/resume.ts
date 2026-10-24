@@ -46,6 +46,53 @@ export interface ResumeAnalysisResponse {
   analyzedAt: string;
 }
 
+export interface MatchedSkill {
+  skill: string;
+  supportingProjects: string[];
+  evidence: string;
+}
+
+export interface MissingSkill {
+  skill: string;
+  importance: string;
+  learningAction: string;
+}
+
+export interface EvidenceNeededSkill {
+  skill: string;
+  issue: string;
+  recommendation: string;
+}
+
+export interface RecommendedNextStep {
+  title: string;
+  description: string;
+  priority: string;
+}
+
+export interface RoadmapStepResponse {
+  stepNumber: number;
+  title: string;
+  focus?: string;
+  whatToDo: string;
+  whyItMatters: string;
+  practicalTask: string;
+  dependencies?: string;
+  estimatedEffort?: string;
+}
+
+export interface SkillGapAnalysisResponse {
+  resumeId: string;
+  targetRoleOrJobDescription: string;
+  matchPercentage: number;
+  matchedSkills: MatchedSkill[];
+  missingSkills: MissingSkill[];
+  skillsNeedingEvidence: EvidenceNeededSkill[];
+  recommendedNextSteps: RecommendedNextStep[];
+  roadmap?: RoadmapStepResponse[];
+  analyzedAt: string;
+}
+
 export interface ApiErrorResponse {
   timestamp?: string;
   status?: number;
@@ -70,5 +117,6 @@ export interface ChatMessage {
 export type NavigationTab = 
   | 'dashboard'
   | 'analysis'
-  | 'chat';
+  | 'chat'
+  | 'skill-gap';
 

@@ -1,5 +1,6 @@
 package com.example.ResumeIQ.service;
 
+import com.example.ResumeIQ.domain.AppUser;
 import com.example.ResumeIQ.domain.ResumeDocument;
 import com.example.ResumeIQ.domain.ResumeSegment;
 import com.example.ResumeIQ.dto.response.AnalysisStatus;
@@ -20,11 +21,12 @@ import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Accepts a resume upload, extracts its text with the existing extractors and
- * stores the result so it can be queried later. No AI call is made here.
+ * Accepts a resume upload, extracts its text, and stores the result
+ * strictly associated with the authenticated AppUser.
  */
 @Service
 public class ResumeService {
@@ -60,13 +62,19 @@ public class ResumeService {
         this.sessionContext = sessionContext;
     }
 
-    public ResumeUploadResponse upload(MultipartFile file) {
+    /**
+     * Uploads and stores a resume belonging to the authenticated user.
+     */
+    public ResumeUploadResponse upload(MultipartFile file, AppUser user) {
         ValidatedDocument validated = documentValidator.validate(file, RESUME_FIELD);
         ExtractedDocument extracted = extract(validated);
         String fullText = joinText(extracted);
 
+        String userId = user != null ? user.id() : null;
+
         ResumeDocument document = new ResumeDocument(
                 UUID.randomUUID().toString(),
+                userId,
                 validated.originalFilename(),
                 extracted.type().name(),
                 AnalysisStatus.SUCCESS.name(),
@@ -76,8 +84,51 @@ public class ResumeService {
                 Instant.now());
 
         resumeRepository.save(document);
-        sessionContext.setRecentResumeId(document.id());
+        if (userId != null) {
+            sessionContext.setRecentResumeId(userId, document.id());
+        } else {
+            sessionContext.setRecentResumeId(document.id());
+        }
         return ResumeUploadResponse.from(document);
+    }
+
+    /**
+     * Backward-compatible upload for tests.
+     */
+    public ResumeUploadResponse upload(MultipartFile file) {
+        return upload(file, null);
+    }
+
+    /**
+     * Retrieves the most recently uploaded resume for the authenticated user.
+     */
+    public Optional<ResumeUploadResponse> getLatestResume(AppUser user) {
+        if (user == null || user.id() == null) {
+            return Optional.empty();
+        }
+        return resumeRepository.findLatestByUserId(user.id())
+                .map(ResumeUploadResponse::from);
+    }
+
+    /**
+     * Retrieves a specific resume owned by the authenticated user.
+     */
+    public Optional<ResumeUploadResponse> getResumeByIdAndUser(String resumeId, AppUser user) {
+        if (user == null || user.id() == null || resumeId == null) {
+            return Optional.empty();
+        }
+        return resumeRepository.findByIdAndUserId(resumeId, user.id())
+                .map(ResumeUploadResponse::from);
+    }
+
+    /**
+     * Deletes a resume owned by the authenticated user.
+     */
+    public boolean deleteResume(String resumeId, AppUser user) {
+        if (user == null || user.id() == null || resumeId == null) {
+            return false;
+        }
+        return resumeRepository.deleteByIdAndUserId(resumeId, user.id());
     }
 
     private ExtractedDocument extract(ValidatedDocument document) {
