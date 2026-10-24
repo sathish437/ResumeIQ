@@ -75,6 +75,21 @@ docker compose up --build -d
 
 ---
 
+## Standalone Single-Container Deployment (Root Dockerfile)
+
+If you prefer to deploy the entire application as a single self-contained full-stack container (ideal for AWS ECS, Google Cloud Run, Railway, Render, or Heroku):
+
+```bash
+# Build the unified image (compiles React frontend and embeds into Spring Boot)
+docker build -t resumeiq:latest .
+
+# Run the single container
+docker run -d --name resumeiq -p 8080:8080 --env-file .env resumeiq:latest
+```
+Access the application at [http://localhost:8080](http://localhost:8080).
+
+---
+
 ## Docker Compose Management Commands
 
 ### Check Running Services and Health
