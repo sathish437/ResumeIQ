@@ -1,0 +1,13 @@
+.git
+node_modules
+dist
+target
+data
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.idea
+.vscode
+HELP.md

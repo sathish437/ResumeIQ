@@ -1,0 +1,11 @@
+target
+.git
+.env
+.env.local
+.env.*.local
+data
+*.log
+.DS_Store
+.idea
+.vscode
+HELP.md
