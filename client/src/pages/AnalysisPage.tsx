@@ -122,7 +122,7 @@ export const AnalysisPage: React.FC = () => {
       {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.025em', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: 'clamp(1.3rem, 4vw, 1.75rem)', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.025em', marginBottom: '4px', lineHeight: 1.25 }}>
             Resume Analysis
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
@@ -236,7 +236,7 @@ export const AnalysisPage: React.FC = () => {
               border: isDragOver ? '2px dashed var(--primary-600)' : '2px dashed var(--border-main)',
               backgroundColor: isDragOver ? 'var(--primary-subtle)' : 'var(--bg-surface-subtle)',
               borderRadius: 'var(--radius-lg)',
-              padding: '48px 20px',
+              padding: 'clamp(28px, 6vw, 48px) 16px',
               textAlign: 'center',
               cursor: isUploading ? 'not-allowed' : 'pointer',
               transition: 'all var(--transition-fast)',

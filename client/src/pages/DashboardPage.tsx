@@ -29,20 +29,20 @@ export const DashboardPage: React.FC = () => {
         style={{
           background: 'var(--hero-gradient)',
           borderColor: 'var(--primary-border)',
-          padding: '28px 32px',
+          padding: 'clamp(18px, 4vw, 28px) clamp(16px, 4vw, 32px)',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-          <div style={{ flex: '1 1 500px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ flex: '1 1 300px', minWidth: 0 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <span className="badge badge-primary">
                 Evidence-Grounded Intelligence
               </span>
             </div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.025em', marginBottom: '6px' }}>
+            <h1 style={{ fontSize: 'clamp(1.3rem, 4vw, 1.75rem)', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.025em', marginBottom: '6px', lineHeight: 1.25 }}>
               ResumeIQ Platform
             </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', maxWidth: '640px', lineHeight: 1.55, margin: 0 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '640px', lineHeight: 1.55, margin: 0 }}>
               Extract verified skills and project credentials from PDF or DOCX resumes, benchmark against target roles, and converse with citation-backed AI.
             </p>
           </div>
@@ -121,10 +121,10 @@ export const DashboardPage: React.FC = () => {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
               gap: '12px',
               backgroundColor: 'var(--bg-surface-subtle)',
-              padding: '14px 18px',
+              padding: 'clamp(12px, 3vw, 14px) clamp(12px, 3vw, 18px)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-subtle)',
               marginBottom: '16px',
@@ -351,14 +351,14 @@ export const DashboardPage: React.FC = () => {
           style={{
             border: '1px solid var(--border-main)',
             backgroundColor: 'var(--bg-surface)',
-            padding: '22px 24px',
+            padding: 'clamp(14px, 3.5vw, 22px) clamp(14px, 3.5vw, 24px)',
           }}
         >
           <div className="card-header" style={{ marginBottom: '16px' }}>
             <div>
               <div className="card-title">
                 <Award size={20} style={{ color: '#ef4444' }} />
-                <span>ATS Resume Compatibility Score</span>
+                <span style={{ fontSize: 'clamp(0.95rem, 3vw, 1.05rem)' }}>ATS Resume Compatibility Score</span>
               </div>
               <div className="card-subtitle">
                 Target-grounded compatibility score measuring keyword coverage, project evidence, and document readability.
@@ -384,14 +384,14 @@ export const DashboardPage: React.FC = () => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   flexWrap: 'wrap',
-                  gap: '16px',
+                  gap: '14px',
                   backgroundColor: 'var(--bg-surface-subtle)',
-                  padding: '16px 20px',
+                  padding: 'clamp(12px, 3vw, 16px) clamp(12px, 3vw, 20px)',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--border-subtle)',
                 }}
               >
-                <div>
+                <div style={{ minWidth: 0, flex: '1 1 200px' }}>
                   <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     TARGET ROLE / JOB DESCRIPTION
                   </div>
@@ -442,7 +442,7 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               {/* 4 Category Score Breakdown Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '10px' }}>
                 <div
                   style={{
                     backgroundColor: 'var(--bg-surface-subtle)',
@@ -609,10 +609,10 @@ export const DashboardPage: React.FC = () => {
 
       {/* 4-Step Capabilities Overview */}
       <div>
-        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.015em', marginBottom: '14px' }}>
+        <h3 style={{ fontSize: 'clamp(0.98rem, 3vw, 1.05rem)', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.015em', marginBottom: '14px' }}>
           Platform Capabilities
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '12px' }}>
           <div className="card" style={{ padding: '18px' }}>
             <div
               style={{

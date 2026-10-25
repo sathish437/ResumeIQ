@@ -77,6 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
             className="mobile-menu-btn"
             onClick={onCloseMobile}
             aria-label="Close menu"
+            style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <X size={18} />
           </button>
@@ -96,7 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
                     className={`nav-item-btn ${isActive ? 'active' : ''}`}
                     onClick={() => handleNavClick(item.id)}
                     whileTap={{ scale: 0.98 }}
-                    style={{ position: 'relative', zIndex: 1 }}
+                    style={{ position: 'relative', zIndex: 1, minHeight: '44px' }}
                   >
                     {isActive && (
                       <motion.div

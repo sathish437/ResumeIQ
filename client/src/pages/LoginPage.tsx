@@ -146,7 +146,7 @@ export const LoginPage: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'var(--bg-app)',
-        padding: '24px',
+        padding: 'clamp(14px, 4vw, 24px)',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -188,7 +188,7 @@ export const LoginPage: React.FC = () => {
           border: '1px solid var(--border-main)',
           borderRadius: 'var(--radius-lg)',
           boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
-          padding: '36px 32px',
+          padding: 'clamp(24px, 6vw, 36px) clamp(16px, 5vw, 32px)',
           position: 'relative',
           zIndex: 1,
         }}
@@ -215,11 +215,12 @@ export const LoginPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
             <h1
               style={{
-                fontSize: '1.65rem',
+                fontSize: 'clamp(1.35rem, 5vw, 1.65rem)',
                 fontWeight: 900,
                 color: 'var(--text-main)',
                 letterSpacing: '-0.03em',
                 margin: 0,
+                lineHeight: 1.2,
               }}
             >
               ResumeIQ

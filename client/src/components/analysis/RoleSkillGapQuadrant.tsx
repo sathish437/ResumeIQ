@@ -235,7 +235,7 @@ export const RoleSkillGapQuadrant: React.FC<RoleSkillGapQuadrantProps> = ({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: categoryFilter === 'all' ? 'repeat(auto-fit, minmax(310px, 1fr))' : '1fr',
+          gridTemplateColumns: categoryFilter === 'all' ? 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))' : '1fr',
           gap: '12px',
         }}
       >

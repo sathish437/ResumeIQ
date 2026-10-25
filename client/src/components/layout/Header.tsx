@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
         {/* Active Resume Status Badge */}
         {currentResume ? (
           <div
-            className="badge badge-primary"
+            className="badge badge-primary header-resume-badge"
             style={{ padding: '5px 10px', fontSize: '0.78rem', gap: '6px' }}
             title={`Active: ${currentResume.filename}`}
           >
@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
           </div>
         ) : (
           <div
-            className="badge badge-gray"
+            className="badge badge-gray header-resume-badge"
             style={{ padding: '5px 10px', fontSize: '0.76rem', gap: '6px' }}
           >
             <FileText size={13} />
@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
         )}
 
         {/* Engine Status Indicator */}
-        <div className="status-indicator" title="ResumeIQ AI Engine Online">
+        <div className="status-indicator header-status-indicator" title="ResumeIQ AI Engine Online">
           <span className="status-dot" />
           <span>Online</span>
         </div>
@@ -132,6 +132,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
                 </div>
               )}
               <span
+                className="header-user-name"
                 style={{
                   fontSize: '0.78rem',
                   fontWeight: 600,
@@ -155,7 +156,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
               aria-label="Sign out"
             >
               <LogOut size={13} />
-              <span>Sign Out</span>
+              <span className="header-signout-text">Sign Out</span>
             </button>
           </div>
         )}

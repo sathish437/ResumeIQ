@@ -34,10 +34,10 @@ export const SkillGapPage: React.FC = () => {
           style={{
             background: 'var(--hero-gradient)',
             borderColor: 'rgba(220, 38, 38, 0.25)',
-            padding: '24px 28px',
+            padding: 'clamp(16px, 3.5vw, 24px) clamp(14px, 3.5vw, 28px)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap' }}>
             <div
               style={{
                 width: '40px',
@@ -54,11 +54,11 @@ export const SkillGapPage: React.FC = () => {
             >
               <Compass size={22} />
             </div>
-            <div>
+            <div style={{ flex: '1 1 240px', minWidth: 0 }}>
               <span className="badge badge-primary" style={{ marginBottom: '6px' }}>
                 Career Guidance
               </span>
-              <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+              <h1 style={{ fontSize: 'clamp(1.25rem, 4vw, 1.65rem)', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em', marginBottom: '4px', lineHeight: 1.25 }}>
                 Resume-Based Career Guidance
               </h1>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '680px', lineHeight: 1.5, margin: 0 }}>
@@ -96,7 +96,7 @@ export const SkillGapPage: React.FC = () => {
         </motion.div>
 
         {/* Feature Highlights Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '12px' }}>
           <div className="card" style={{ padding: '16px' }}>
             <div
               style={{

@@ -95,7 +95,7 @@ export const RecommendedRolesSection: React.FC<RecommendedRolesSectionProps> = (
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
           gap: '12px',
         }}
       >

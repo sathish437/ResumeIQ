@@ -420,7 +420,7 @@ export const CustomJobDescriptionPanel: React.FC<CustomJobDescriptionPanelProps>
                       borderRadius: 'var(--radius-sm)',
                       padding: '8px',
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))',
                       gap: '6px',
                       backgroundColor: 'var(--bg-surface-subtle)',
                     }}
@@ -512,7 +512,7 @@ export const CustomJobDescriptionPanel: React.FC<CustomJobDescriptionPanelProps>
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
                       gap: '10px',
                     }}
                   >
