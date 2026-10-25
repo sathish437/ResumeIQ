@@ -36,6 +36,33 @@ export interface ProjectDetail {
   description: string;
 }
 
+export interface AtsScoreBreakdown {
+  requiredSkillsScore: number;
+  preferredSkillsScore: number;
+  experienceEvidenceScore: number;
+  resumeStructureScore: number;
+}
+
+export interface AtsScoreResult {
+  totalScore: number;
+  targetRoleOrJobDescription: string;
+  breakdown: AtsScoreBreakdown;
+  missingRequirements: string[];
+  formulaExplanation: string;
+  disclaimer: string;
+}
+
+export interface RecommendedRole {
+  id: string;
+  title: string;
+  category: string;
+  fitRank: number;
+  fitRationale: string;
+  matchedSkills: MatchedSkill[];
+  skillsToDevelop: MissingSkill[];
+  supportingProjects: string[];
+}
+
 export interface ResumeAnalysisResponse {
   resumeId: string;
   professionalSummary: string;
@@ -43,6 +70,7 @@ export interface ResumeAnalysisResponse {
   projects: ProjectDetail[];
   educationAndCertifications: string[];
   missingOrUnavailableInformation: string[];
+  recommendedRoles?: RecommendedRole[];
   analyzedAt: string;
 }
 
@@ -90,6 +118,7 @@ export interface SkillGapAnalysisResponse {
   skillsNeedingEvidence: EvidenceNeededSkill[];
   recommendedNextSteps: RecommendedNextStep[];
   roadmap?: RoadmapStepResponse[];
+  atsScore?: AtsScoreResult;
   analyzedAt: string;
 }
 

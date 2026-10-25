@@ -33,10 +33,10 @@ public class ResumeSessionContext {
     public String getConversationId(String userId, String resumeId) {
         String customConvId = threadLocalConversationId.get();
         if (customConvId != null && !customConvId.isBlank()) {
-            return customConvId;
+            return sanitizeConversationId(customConvId);
         }
         if (userId != null && !userId.isBlank() && resumeId != null && !resumeId.isBlank()) {
-            return "user-" + userId.strip() + ":resume-" + resumeId.strip();
+            return sanitizeConversationId("user-" + userId.strip() + ":resume-" + resumeId.strip());
         }
         return getConversationId();
     }
@@ -47,7 +47,7 @@ public class ResumeSessionContext {
     public String getConversationId() {
         String customConvId = threadLocalConversationId.get();
         if (customConvId != null && !customConvId.isBlank()) {
-            return customConvId;
+            return sanitizeConversationId(customConvId);
         }
 
         HttpServletRequest request = currentHttpRequest();
@@ -64,15 +64,26 @@ public class ResumeSessionContext {
 
         Optional<String> recentResumeId = getRecentResumeId();
         if (recentResumeId.isPresent()) {
-            return baseSession + ":" + recentResumeId.get();
+            return sanitizeConversationId(baseSession + ":" + recentResumeId.get());
         }
 
         String threadId = threadLocalResumeId.get();
         if (threadId != null && !threadId.isBlank()) {
-            return "thread-conv-" + threadId;
+            return sanitizeConversationId("thread-conv-" + threadId);
         }
 
-        return baseSession + "-conv";
+        return sanitizeConversationId(baseSession + "-conv");
+    }
+
+    private String sanitizeConversationId(String rawId) {
+        if (rawId == null || rawId.isBlank()) {
+            return "default-conv";
+        }
+        String stripped = rawId.strip();
+        if (stripped.length() <= 36) {
+            return stripped;
+        }
+        return java.util.UUID.nameUUIDFromBytes(stripped.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
     }
 
     /**

@@ -160,8 +160,8 @@ export const CareerProfileCard: React.FC<CareerProfileCardProps> = ({ profile, f
         >
           <ShieldCheck size={14} style={{ color: '#ef4444', flexShrink: 0 }} />
           <div>
-            <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-              APPARENT LEVEL
+            <div style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--primary-text)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              EXPERIENCE EVIDENCE
             </div>
             <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', lineHeight: 1.2 }}>
               {profile.apparentLevel.level}

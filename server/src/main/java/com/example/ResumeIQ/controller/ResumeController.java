@@ -231,6 +231,32 @@ public class ResumeController {
         return ResponseEntity.ok(resumeAnalysisService.analyzeSkillGap(request, user));
     }
 
+    @PostMapping(value = "/ats-score", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Calculate ATS compatibility score against target requirements",
+            description = "Calculates an evidence-based ATS compatibility score (0-100) and transparent breakdown.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "ATS score calculated successfully",
+                    content = @Content(schema = @Schema(implementation = com.example.ResumeIQ.dto.response.AtsScoreResult.class))),
+            @ApiResponse(responseCode = "400", description = "Blank target role or job description",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "No resume has been uploaded for the current user",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "502", description = "The AI assistant is unavailable",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Unexpected server error",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
+    public ResponseEntity<com.example.ResumeIQ.dto.response.AtsScoreResult> atsScore(
+            @Valid @RequestBody SkillGapRequest request,
+            Authentication authentication) {
+        if (resumeAnalysisService == null) {
+            throw new IllegalStateException("ResumeAnalysisService is not available.");
+        }
+        AppUser user = resolveUser(authentication);
+        return ResponseEntity.ok(resumeAnalysisService.calculateAtsScore(request, user));
+    }
+
     private AppUser resolveUser(Authentication authentication) {
         if (authentication != null && authentication.getPrincipal() instanceof AppUser user) {
             return user;

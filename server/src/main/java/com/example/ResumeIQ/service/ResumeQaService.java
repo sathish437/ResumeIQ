@@ -80,19 +80,31 @@ public class ResumeQaService {
                libraries, and product names (e.g. Java, Spring Boot, PostgreSQL, Docker, AWS, Git)
                in their standard Latin/English form, unchanged.
 
-            Resume Feedback & Review Standards:
-            9. Structured, Prioritized Feedback: When the user asks for resume feedback, review,
-               critique, mistakes, or suggestions (e.g. "Give me feedback on my resume",
-               "En resume la enna mistakes iruku?", "எனது ரெஸ்யூமில் என்ன குறைகள் உள்ளன?",
-               "How can I improve my skills section?"):
-               Organize your review into these clear sections in the user's language:
-               - Strengths: What is well-documented, strong, and effectively presented in the resume.
-               - Important Issues: Confirmed deficiencies or critical omissions that weaken the
-                 resume. For each issue, clearly explain WHY the change matters for recruiters or ATS.
-               - Optional Improvements: Secondary enhancements or polish suggestions.
-               - Prioritized Next Steps: Concrete, high-impact action items in order of priority.
-               Avoid repeating the same recommendation in multiple sections.
-            10. Evidence-Based Quality & Experience Level Awareness:
+            Response Structure & Presentation:
+            9. Preferred Response Structure: When answering complex or analytical questions, prefer
+               this clear 4-part structure in the user's detected language when appropriate:
+               1. Direct Answer — Answer the core question directly and upfront.
+               2. Key Findings — Summarize essential observations using concise bullet points.
+               3. Resume Evidence — Cite relevant resume sections using exact citation markers (e.g. [Page 1]).
+               4. Suggestions — Offer practical, actionable recommendations when helpful or requested.
+               Adapt naturally to the question: do NOT force simple factual answers into all four sections.
+               For simple questions, give a concise, direct answer.
+               For project questions, list documented project names, technologies used, and documented contributions.
+               For improvement questions, cleanly separate observed weaknesses from practical suggestions.
+
+            10. Structured, Prioritized Feedback: When the user asks for resume feedback, review,
+                critique, mistakes, or suggestions (e.g. "Give me feedback on my resume",
+                "En resume la enna mistakes iruku?", "எனது ரெஸ்யூமில் என்ன குறைகள் உள்ளன?",
+                "How can I improve my skills section?"):
+                Organize your review into these clear sections in the user's language:
+                - Strengths: What is well-documented, strong, and effectively presented in the resume.
+                - Important Issues: Confirmed deficiencies or critical omissions that weaken the
+                  resume. For each issue, clearly explain WHY the change matters for recruiters or ATS.
+                - Optional Improvements: Secondary enhancements or polish suggestions.
+                - Prioritized Next Steps: Concrete, high-impact action items in order of priority.
+                Avoid repeating the same recommendation in multiple sections.
+
+            11. Evidence-Based Quality & Experience Level Awareness:
                 - Separate confirmed resume issues from optional suggestions. Never label something
                   as a definite mistake without clear, demonstrable evidence.
                 - Evaluate recommendations based on hiring relevance and candidate experience level.
@@ -101,14 +113,16 @@ public class ResumeQaService {
                   senior-level assumptions.
                 - Only tailor advice to a target role if the user explicitly provided one;
                   never assume an unstated target role.
-            11. Strict Prohibition of Fabricated Metrics:
+
+            12. Strict Prohibition of Fabricated Metrics:
                 - Never invent or suggest made-up percentages, performance figures, or achievements
                   as if they were actual results (e.g., do not say "state you improved latency by 40%").
                 - If metrics would strengthen a bullet point, instruct the candidate to add verified
                   measurements only when truthfully available from their own experience.
                 - Clearly label any illustrative example as a template or placeholder:
                   e.g., "[Template: Increased X by [insert verified %] using Y]".
-            12. Formatting & Text-Extraction Artifacts:
+
+            13. Formatting & Text-Extraction Artifacts:
                 - Distinguish actual document layout issues from plain-text extraction artifacts.
                   PDF and DOCX text extractors often produce missing spaces, collapsed line breaks,
                   or irregular indentation. Do not claim the visual layout or spacing is broken
@@ -270,9 +284,32 @@ public class ResumeQaService {
                 rawContent = callSpec.content();
             }
         } catch (RuntimeException ex) {
-            log.warn("Resume question failed for resume {}: {}", resume.id(), ex.getMessage());
-            throw new AiServiceException(
-                    "The AI assistant is currently unavailable. Please try again later.", ex);
+            // If chat memory advisor failed (e.g. database disconnect or chat memory storage error),
+            // attempt graceful recovery without chat memory advisor so the user still receives their answer.
+            if (chatMemoryAdvisor != null && conversationId != null) {
+                log.warn("Call with chat memory advisor failed for resume {}: {}. Retrying without memory advisor...",
+                        resume.id(), ex.getMessage());
+                try {
+                    var promptFallback = chatClient.prompt()
+                            .system(SYSTEM_PROMPT)
+                            .user(userMessage(resume, question));
+                    var callSpecFallback = promptFallback.call();
+                    try {
+                        structuredOutput = callSpecFallback.entity(ResumeAskStructuredOutput.class);
+                    } catch (Exception e) {
+                        log.debug("Direct structured output entity call fallback returned error: {}", e.getMessage());
+                    }
+                    if (structuredOutput == null || structuredOutput.answer() == null || structuredOutput.answer().isBlank()) {
+                        rawContent = callSpecFallback.content();
+                    }
+                } catch (RuntimeException fallbackEx) {
+                    log.error("AI service failure for resume {}: {}", resume.id(), fallbackEx.getMessage(), fallbackEx);
+                    throw new AiServiceException("The AI assistant is currently unavailable. Please try again later.", fallbackEx);
+                }
+            } else {
+                log.error("AI service failure for resume {}: {}", resume.id(), ex.getMessage(), ex);
+                throw new AiServiceException("The AI assistant is currently unavailable. Please try again later.", ex);
+            }
         }
 
         if (structuredOutput != null && structuredOutput.answer() != null && !structuredOutput.answer().isBlank()) {
@@ -284,9 +321,18 @@ public class ResumeQaService {
         }
 
         String stripped = rawContent.strip();
-        if (stripped.startsWith("{") && stripped.endsWith("}")) {
+        String jsonCandidate = stripped;
+        if (jsonCandidate.startsWith("```")) {
+            int firstNewline = jsonCandidate.indexOf('\n');
+            int lastBackticks = jsonCandidate.lastIndexOf("```");
+            if (firstNewline != -1 && lastBackticks > firstNewline) {
+                jsonCandidate = jsonCandidate.substring(firstNewline + 1, lastBackticks).strip();
+            }
+        }
+
+        if (jsonCandidate.startsWith("{") && jsonCandidate.endsWith("}")) {
             try {
-                return objectMapper.readValue(stripped, ResumeAskStructuredOutput.class);
+                return objectMapper.readValue(jsonCandidate, ResumeAskStructuredOutput.class);
             } catch (Exception ignored) {
             }
         }

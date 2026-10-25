@@ -30,9 +30,24 @@ public record ResumeAnalysisResponse(
         @Schema(description = "Missing or unavailable information (e.g. missing dates, contact info, metrics)")
         List<String> missingOrUnavailableInformation,
 
+        @Schema(description = "Personalized role recommendations dynamically generated from resume evidence")
+        List<RecommendedRole> recommendedRoles,
+
         @Schema(description = "Timestamp when analysis was generated", example = "2026-10-21T10:15:30Z")
         Instant analyzedAt
 ) {
+    public ResumeAnalysisResponse(
+            String resumeId,
+            String professionalSummary,
+            List<String> skills,
+            List<ProjectDetail> projects,
+            List<String> educationAndCertifications,
+            List<String> missingOrUnavailableInformation,
+            Instant analyzedAt) {
+        this(resumeId, professionalSummary, skills, projects, educationAndCertifications,
+                missingOrUnavailableInformation, List.of(), analyzedAt);
+    }
+
     public record ProjectDetail(
             @Schema(description = "Project title or name", example = "Payments Platform")
             String name,
@@ -42,5 +57,31 @@ public record ResumeAnalysisResponse(
 
             @Schema(description = "Description of the project based strictly on the resume", example = "High throughput transaction processor")
             String description
+    ) {}
+
+    public record RecommendedRole(
+            @Schema(description = "Identifier for the role", example = "backend-engineer")
+            String id,
+
+            @Schema(description = "Recommended role title", example = "Java & Spring Boot Backend Engineer")
+            String title,
+
+            @Schema(description = "Domain or category", example = "Backend Engineering")
+            String category,
+
+            @Schema(description = "Relevance fit rank starting from 1", example = "1")
+            Integer fitRank,
+
+            @Schema(description = "Evidence-based match rationale", example = "Strong candidate fit supported by verified Spring Boot and PostgreSQL projects.")
+            String fitRationale,
+
+            @Schema(description = "Matched skills supported by resume evidence")
+            List<SkillGapAnalysisResponse.MatchedSkill> matchedSkills,
+
+            @Schema(description = "Important missing skills or gaps to develop for this role")
+            List<SkillGapAnalysisResponse.MissingSkill> skillsToDevelop,
+
+            @Schema(description = "Resume projects supporting this role")
+            List<String> supportingProjects
     ) {}
 }

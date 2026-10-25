@@ -44,12 +44,14 @@ CREATE TABLE IF NOT EXISTS resume_segment (
 );
 
 CREATE TABLE IF NOT EXISTS SPRING_AI_CHAT_MEMORY (
-    conversation_id VARCHAR(64) NOT NULL,
+    conversation_id VARCHAR(128) NOT NULL,
     content         TEXT NOT NULL,
     type            VARCHAR(10) NOT NULL CHECK (type IN ('USER', 'ASSISTANT', 'SYSTEM', 'TOOL')),
     "timestamp"     TIMESTAMP NOT NULL,
     sequence_id     BIGINT NOT NULL
 );
+
+ALTER TABLE SPRING_AI_CHAT_MEMORY ALTER COLUMN conversation_id TYPE VARCHAR(128);
 
 CREATE INDEX IF NOT EXISTS SPRING_AI_CHAT_MEMORY_CONV_TS_IDX
 ON SPRING_AI_CHAT_MEMORY(conversation_id, "timestamp");
@@ -64,6 +66,10 @@ CREATE TABLE IF NOT EXISTS resume_analysis (
     projects_json   TEXT         NOT NULL,
     education_json  TEXT         NOT NULL,
     missing_info    TEXT         NOT NULL,
+    recommended_roles_json TEXT,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_resume_analysis_resume FOREIGN KEY (resume_id) REFERENCES resume (id) ON DELETE CASCADE
 );
+
+ALTER TABLE resume_analysis ADD COLUMN IF NOT EXISTS recommended_roles_json TEXT;
+

@@ -12,7 +12,6 @@ import { CareerProfileCard } from './CareerProfileCard';
 import { RecommendedRolesSection } from './RecommendedRolesSection';
 import { RoleSkillGapQuadrant } from './RoleSkillGapQuadrant';
 import { PersonalizedRoadmapSection } from './PersonalizedRoadmapSection';
-import { NextActionsChecklistCard } from './NextActionsChecklistCard';
 import {
   CustomJobDescriptionPanel,
   type CustomTargetMetadata,
@@ -136,9 +135,17 @@ export const SkillGapAnalysisSection: React.FC = () => {
   };
 
   // Handle selecting a recommended role
-  const handleSelectRecommendedRole = (role: RecommendedJobRole) => {
+  const handleSelectRecommendedRole = async (role: RecommendedJobRole) => {
     setUserSelectedRoleId(role.id);
     setActiveTargetMode('recommended');
+    const normRole = role.title.toLowerCase();
+    const isAlreadyMatching = skillGapAnalysis && (
+      skillGapAnalysis.targetRoleOrJobDescription.toLowerCase().includes(normRole) ||
+      normRole.includes(skillGapAnalysis.targetRoleOrJobDescription.toLowerCase())
+    );
+    if (!isAlreadyMatching && !isAnalyzingSkillGap) {
+      await handleRunSkillGap(role.title);
+    }
   };
 
   if (!analysis || !careerProfile || recommendedRoles.length === 0) {
@@ -311,16 +318,6 @@ export const SkillGapAnalysisSection: React.FC = () => {
           roleId={activeRole.id}
           resumeId={currentResume?.resumeId || 'default'}
           steps={activeRole.roadmap}
-        />
-      )}
-
-      {/* Section E: Practical Experience and Action Plan */}
-      {activeRole && (
-        <NextActionsChecklistCard
-          key={`actions-${activeRole.id}`}
-          roleTitle={activeRole.title}
-          nextActions={activeRole.nextActions}
-          practicalExperience={activeRole.practicalExperience}
         />
       )}
     </div>

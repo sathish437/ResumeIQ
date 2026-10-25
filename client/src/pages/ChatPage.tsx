@@ -19,11 +19,11 @@ import type { ChatMessage } from '../types/resume';
 import { FormattedAiResponse } from '../components/common/FormattedAiResponse';
 
 const SUGGESTED_PROMPTS = [
-  'What projects are detailed in my resume?',
-  'What are the strongest technical qualifications?',
-  'What key skills or certifications are missing?',
-  'How can I improve my project descriptions?',
-  'En resume-la enna enna projects irukku?',
+  'What projects are mentioned in my resume?',
+  'What are my strongest technical qualifications?',
+  'What important skills or qualifications appear to be missing?',
+  'How can I improve my project descriptions and impact?',
+  'What roles best match the experience documented in my resume?',
 ];
 
 export const ChatPage: React.FC = () => {
@@ -302,7 +302,7 @@ export const ChatPage: React.FC = () => {
               </div>
               <h2 className="chat-welcome-title">Resume AI Assistant</h2>
               <p className="chat-welcome-subtitle">
-                Ask anything about your uploaded document. Answers are backed by exact segment citations and support multilingual queries.
+                Ask anything about your uploaded document in English, Tamil, or Tanglish. Answers are backed by exact segment citations.
               </p>
 
               <div className="chat-suggestions-title">

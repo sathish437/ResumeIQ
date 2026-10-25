@@ -32,7 +32,7 @@ public class ResumeAnalysisService {
     private static final Logger log = LoggerFactory.getLogger(ResumeAnalysisService.class);
 
     static final String SYSTEM_PROMPT = """
-            You are ResumeIQ, an evidence-based resume analysis system.
+            You are ResumeIQ, an evidence-based resume analysis and career fit recommendation system.
 
             Rules:
             1. Analyze ONLY the supplied resume content. The resume is your single source of truth.
@@ -44,6 +44,15 @@ public class ResumeAnalysisService {
                - projects: List of projects with "name", "technologies" used, and "description".
                - educationAndCertifications: Degrees, schools, certifications mentioned.
                - missingOrUnavailableInformation: Important career or document details that are omitted (e.g. contact info, dates, metrics).
+               - recommendedRoles: Personalized role recommendations reasonably supported by the candidate's actual resume evidence:
+                 * Recommend ONLY roles reasonably supported by extracted skills, project technologies, and experience.
+                 * Rank roles by relevance to actual evidence (fitRank: 1, 2, ...).
+                 * If the resume supports only 1 or 2 roles, return only 1 or 2. Do not pad the list with unsuitable roles.
+                 * Explain briefly why each role matches (fitRationale) citing actual resume skills and projects.
+                 * Include matchedSkills: skills from the resume that match the role, with supportingProjects and evidence.
+                 * Include skillsToDevelop: important missing skills or gaps to bridge for this role, with importance and learningAction.
+                 * Include supportingProjects: project names from the resume demonstrating relevance.
+                 * Do not fabricate suitability percentages or market statistics.
             """;
 
     static final String SKILL_GAP_SYSTEM_PROMPT = """
@@ -68,14 +77,15 @@ public class ResumeAnalysisService {
                  but lack sufficient supporting evidence, project depth, or context. Specify "issue" and
                  a concrete "recommendation".
                - recommendedNextSteps: Concrete, prioritized actionable next steps to bridge genuine gaps.
-            4. Dynamic 6-Step Learning Roadmap:
+            4. Domain-Specific 6-Step Learning Roadmap:
                Generate EXACTLY SIX sequential, domain-specific steps tailored strictly to this candidate's
                existing evidence and the target role/job description. Never use a fixed generic roadmap.
+               The technologies, tools, architectures, and tasks in EVERY step MUST be domain-specific to the target role.
                Progress logically through these 6 stages:
                  Stage 1 (stepNumber: 1): Foundation — Strengthen relevant prerequisites and existing skills.
                  Stage 2 (stepNumber: 2): Priority Skill Gaps — Address the most critical missing or weak skills.
                  Stage 3 (stepNumber: 3): Practical Implementation — Complete focused exercises and hands-on modules.
-                 Stage 4 (stepNumber: 4): Project and Validation — Build or upgrade a relevant portfolio project.
+                 Stage 4 (stepNumber: 4): Project and Validation — Build or upgrade a standout portfolio project in the target domain.
                  Stage 5 (stepNumber: 5): Career Evidence and Interview Prep — Architecture explanations, system design, mock Q&A.
                  Stage 6 (stepNumber: 6): Job Readiness and Applications — Portfolio polish, resume bullet points, targeted applications.
                Each step must include:
@@ -98,17 +108,29 @@ public class ResumeAnalysisService {
     private final ResumeAnalysisRepository analysisRepository;
     private final ResumeSessionContext sessionContext;
     private final ObjectMapper objectMapper;
+    private final AtsScoringService atsScoringService;
 
     public ResumeAnalysisService(ChatClient chatClient,
                                  ResumeRepository resumeRepository,
                                  ResumeAnalysisRepository analysisRepository,
                                  ResumeSessionContext sessionContext,
                                  @org.springframework.beans.factory.annotation.Autowired(required = false) ObjectMapper objectMapper) {
+        this(chatClient, resumeRepository, analysisRepository, sessionContext, objectMapper, new AtsScoringService());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public ResumeAnalysisService(ChatClient chatClient,
+                                 ResumeRepository resumeRepository,
+                                 ResumeAnalysisRepository analysisRepository,
+                                 ResumeSessionContext sessionContext,
+                                 @org.springframework.beans.factory.annotation.Autowired(required = false) ObjectMapper objectMapper,
+                                 @org.springframework.beans.factory.annotation.Autowired(required = false) AtsScoringService atsScoringService) {
         this.chatClient = chatClient;
         this.resumeRepository = resumeRepository;
         this.analysisRepository = analysisRepository;
         this.sessionContext = sessionContext;
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+        this.atsScoringService = atsScoringService != null ? atsScoringService : new AtsScoringService();
     }
 
     public ResumeAnalysisResponse analyze(AppUser user) {
@@ -157,6 +179,7 @@ public class ResumeAnalysisService {
                 structured.projects() != null ? structured.projects() : List.of(),
                 structured.educationAndCertifications() != null ? structured.educationAndCertifications() : List.of(),
                 structured.missingOrUnavailableInformation() != null ? structured.missingOrUnavailableInformation() : List.of(),
+                structured.recommendedRoles() != null ? structured.recommendedRoles() : List.of(),
                 Instant.now());
 
         analysisRepository.save(response);
@@ -205,6 +228,7 @@ public class ResumeAnalysisService {
                     List.of(),
                     List.of(),
                     List.of(),
+                    List.of(),
                     List.of());
         }
 
@@ -241,6 +265,36 @@ public class ResumeAnalysisService {
         return executeSkillGapAnalysis(resume, request);
     }
 
+    public com.example.ResumeIQ.dto.response.AtsScoreResult calculateAtsScore(SkillGapRequest request, AppUser user) {
+        if (user == null || user.id() == null) {
+            return calculateAtsScore(request);
+        }
+        ResumeDocument resume = resumeRepository.findLatestByUserId(user.id())
+                .orElseThrow(ResumeNotFoundException::noResumeUploaded);
+        return executeSkillGapAnalysis(resume, request).atsScore();
+    }
+
+    public com.example.ResumeIQ.dto.response.AtsScoreResult calculateAtsScore(String resumeId, SkillGapRequest request, AppUser user) {
+        if (user == null || user.id() == null) {
+            return calculateAtsScore(resumeId, request);
+        }
+        ResumeDocument resume = resumeRepository.findByIdAndUserId(resumeId, user.id())
+                .orElseThrow(() -> new ResumeNotFoundException(resumeId));
+        return executeSkillGapAnalysis(resume, request).atsScore();
+    }
+
+    public com.example.ResumeIQ.dto.response.AtsScoreResult calculateAtsScore(SkillGapRequest request) {
+        String resumeId = sessionContext.getRecentResumeId()
+                .orElseThrow(ResumeNotFoundException::noResumeUploaded);
+        return calculateAtsScore(resumeId, request);
+    }
+
+    public com.example.ResumeIQ.dto.response.AtsScoreResult calculateAtsScore(String resumeId, SkillGapRequest request) {
+        ResumeDocument resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new ResumeNotFoundException(resumeId));
+        return executeSkillGapAnalysis(resume, request).atsScore();
+    }
+
     private SkillGapAnalysisResponse executeSkillGapAnalysis(ResumeDocument resume, SkillGapRequest request) {
         if (request == null || request.targetRoleOrJobDescription() == null || request.targetRoleOrJobDescription().isBlank()) {
             throw new DocumentValidationException("targetRoleOrJobDescription", "Target role or job description must not be blank.");
@@ -265,6 +319,20 @@ public class ResumeAnalysisService {
                 structured.matchedSkills(),
                 structured.missingSkills());
 
+        ResumeAnalysisResponse existingAnalysis = analysisRepository.findByResumeId(resume.id()).orElse(null);
+        com.example.ResumeIQ.dto.response.AtsScoreResult atsScore = null;
+        try {
+            atsScore = atsScoringService.calculateScore(
+                    resume,
+                    existingAnalysis,
+                    request.targetRoleOrJobDescription().strip(),
+                    structured.matchedSkills(),
+                    structured.missingSkills(),
+                    structured.skillsNeedingEvidence());
+        } catch (Exception ex) {
+            log.warn("Failed to calculate ATS score for resume {}: {}", resume.id(), ex.getMessage());
+        }
+
         return new SkillGapAnalysisResponse(
                 resume.id(),
                 request.targetRoleOrJobDescription().strip(),
@@ -274,6 +342,7 @@ public class ResumeAnalysisService {
                 structured.skillsNeedingEvidence() != null ? structured.skillsNeedingEvidence() : List.of(),
                 structured.recommendedNextSteps() != null ? structured.recommendedNextSteps() : List.of(),
                 validatedRoadmap,
+                atsScore,
                 Instant.now()
         );
     }

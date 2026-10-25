@@ -19,24 +19,21 @@ public class ResumeAnalysisRepository {
 
     private static final String INSERT_OR_UPDATE = """
             INSERT INTO resume_analysis (resume_id, summary, skills_json, projects_json,
-                                         education_json, missing_info, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                                         education_json, missing_info, recommended_roles_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (resume_id) DO UPDATE SET
                 summary = EXCLUDED.summary,
                 skills_json = EXCLUDED.skills_json,
                 projects_json = EXCLUDED.projects_json,
                 education_json = EXCLUDED.education_json,
                 missing_info = EXCLUDED.missing_info,
+                recommended_roles_json = EXCLUDED.recommended_roles_json,
                 created_at = EXCLUDED.created_at
             """;
 
-    private static final String INSERT_H2_OR_POSTGRES = """
-            MERGE INTO resume_analysis KEY (resume_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """;
-
     private static final String SELECT_BY_ID = """
-            SELECT resume_id, summary, skills_json, projects_json, education_json, missing_info, created_at
+            SELECT resume_id, summary, skills_json, projects_json, education_json, missing_info,
+                   recommended_roles_json, created_at
             FROM resume_analysis WHERE resume_id = ?
             """;
 
@@ -54,6 +51,7 @@ public class ResumeAnalysisRepository {
         String projectsJson = toJson(analysis.projects());
         String educationJson = toJson(analysis.educationAndCertifications());
         String missingInfoJson = toJson(analysis.missingOrUnavailableInformation());
+        String rolesJson = toJson(analysis.recommendedRoles() != null ? analysis.recommendedRoles() : List.of());
         Timestamp timestamp = Timestamp.from(analysis.analyzedAt() != null ? analysis.analyzedAt() : Instant.now());
 
         // First attempt standard ON CONFLICT (PostgreSQL), if unsupported in some H2 modes, fallback to delete+insert
@@ -65,14 +63,15 @@ public class ResumeAnalysisRepository {
                     projectsJson,
                     educationJson,
                     missingInfoJson,
+                    rolesJson,
                     timestamp);
         } catch (Exception ex) {
             // Safe fallback for in-memory H2 test dialect
             jdbcTemplate.update("DELETE FROM resume_analysis WHERE resume_id = ?", analysis.resumeId());
             jdbcTemplate.update("""
                     INSERT INTO resume_analysis (resume_id, summary, skills_json, projects_json,
-                                                 education_json, missing_info, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                                                 education_json, missing_info, recommended_roles_json, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     analysis.resumeId(),
                     analysis.professionalSummary(),
@@ -80,6 +79,7 @@ public class ResumeAnalysisRepository {
                     projectsJson,
                     educationJson,
                     missingInfoJson,
+                    rolesJson,
                     timestamp);
         }
     }
@@ -99,6 +99,14 @@ public class ResumeAnalysisRepository {
         List<ResumeAnalysisResponse.ProjectDetail> projects = fromJson(rs.getString("projects_json"), new TypeReference<>() {});
         List<String> education = fromJson(rs.getString("education_json"), new TypeReference<>() {});
         List<String> missingInfo = fromJson(rs.getString("missing_info"), new TypeReference<>() {});
+        List<ResumeAnalysisResponse.RecommendedRole> recommendedRoles = List.of();
+        try {
+            String rolesStr = rs.getString("recommended_roles_json");
+            if (rolesStr != null && !rolesStr.isBlank()) {
+                recommendedRoles = fromJson(rolesStr, new TypeReference<>() {});
+            }
+        } catch (Exception ignored) {
+        }
         Instant createdAt = rs.getTimestamp("created_at").toInstant();
 
         return new ResumeAnalysisResponse(
@@ -108,6 +116,7 @@ public class ResumeAnalysisRepository {
                 projects,
                 education,
                 missingInfo,
+                recommendedRoles != null ? recommendedRoles : List.of(),
                 createdAt);
     }
 

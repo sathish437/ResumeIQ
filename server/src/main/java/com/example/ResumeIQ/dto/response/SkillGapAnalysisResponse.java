@@ -34,6 +34,9 @@ public record SkillGapAnalysisResponse(
         @Schema(description = "Personalized six-step learning roadmap tailored to the target role and evidence")
         List<RoadmapStepResponse> roadmap,
 
+        @Schema(description = "Estimated ATS compatibility score breakdown evaluated against target requirements")
+        AtsScoreResult atsScore,
+
         @Schema(description = "Timestamp when analysis was generated")
         Instant analyzedAt
 ) {
@@ -45,9 +48,23 @@ public record SkillGapAnalysisResponse(
             List<MissingSkill> missingSkills,
             List<EvidenceNeededSkill> skillsNeedingEvidence,
             List<RecommendedNextStep> recommendedNextSteps,
+            List<RoadmapStepResponse> roadmap,
             Instant analyzedAt) {
         this(resumeId, targetRoleOrJobDescription, matchPercentage, matchedSkills, missingSkills,
-                skillsNeedingEvidence, recommendedNextSteps, List.of(), analyzedAt);
+                skillsNeedingEvidence, recommendedNextSteps, roadmap, null, analyzedAt);
+    }
+
+    public SkillGapAnalysisResponse(
+            String resumeId,
+            String targetRoleOrJobDescription,
+            Integer matchPercentage,
+            List<MatchedSkill> matchedSkills,
+            List<MissingSkill> missingSkills,
+            List<EvidenceNeededSkill> skillsNeedingEvidence,
+            List<RecommendedNextStep> recommendedNextSteps,
+            Instant analyzedAt) {
+        this(resumeId, targetRoleOrJobDescription, matchPercentage, matchedSkills, missingSkills,
+                skillsNeedingEvidence, recommendedNextSteps, List.of(), null, analyzedAt);
     }
 
     public record MatchedSkill(

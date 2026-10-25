@@ -44,12 +44,12 @@ USER appuser
 # Expose default Spring Boot web port
 EXPOSE 8080
 
-# Production-tuned JVM flags (container RAM awareness, G1 garbage collector)
-ENV JAVA_OPTS="-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+# Production-tuned JVM flags (budgeted for 512MB container limits, G1 garbage collector)
+ENV JAVA_OPTS="-XX:+UseG1GC -Xmx320m -Xms128m -XX:MaxMetaspaceSize=128m -Djava.security.egd=file:/dev/./urandom"
 
-# Healthcheck inspecting the OpenAPI v3 docs endpoint
+# Healthcheck inspecting the OpenAPI v3 docs endpoint using Render dynamic PORT
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:8080/v3/api-docs > /dev/null || exit 1
+  CMD curl -f http://localhost:${PORT:-8080}/v3/api-docs > /dev/null || exit 1
 
 # Execute Spring Boot application
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

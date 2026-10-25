@@ -76,4 +76,24 @@ class ResumeSessionContextTest {
         context.clear();
         assertThat(context.getRecentResumeId()).isEmpty();
     }
+
+    @Test
+    @DisplayName("Guarantees conversation ID never exceeds 36 chars to prevent database column overflow")
+    void ensuresConversationIdNeverExceeds36Chars() {
+        String longUserId = "550e8400-e29b-41d4-a716-446655440000";
+        String longResumeId = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+
+        String convId = context.getConversationId(longUserId, longResumeId);
+        assertThat(convId).isNotNull();
+        assertThat(convId.length()).isLessThanOrEqualTo(36);
+
+        // Deterministic: same user + resume gives same conversation ID
+        String secondCall = context.getConversationId(longUserId, longResumeId);
+        assertThat(secondCall).isEqualTo(convId);
+
+        // Isolated: different user or resume gives different conversation ID
+        String differentUserConv = context.getConversationId("different-user-id-1234567890", longResumeId);
+        assertThat(differentUserConv).isNotEqualTo(convId);
+        assertThat(differentUserConv.length()).isLessThanOrEqualTo(36);
+    }
 }

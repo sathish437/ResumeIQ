@@ -3,6 +3,7 @@ import type {
   ResumeAskResponse,
   ResumeAnalysisResponse,
   SkillGapAnalysisResponse,
+  AtsScoreResult,
   ApiErrorResponse,
 } from '../types/resume';
 import { getStoredAuthToken } from './authApi';
@@ -259,5 +260,36 @@ export async function deleteResume(resumeId: string): Promise<void> {
   });
   if (!res.ok && res.status !== 404) {
     throw new ResumeApiError('Failed to delete resume', res.status);
+  }
+}
+
+/**
+ * Calculates evidence-based ATS compatibility score for target requirements against the active resume.
+ */
+export async function calculateAtsScore(
+  targetRoleOrJobDescription: string
+): Promise<AtsScoreResult> {
+  const trimmed = targetRoleOrJobDescription.trim();
+  if (!trimmed) {
+    throw new ResumeApiError('Target role or job description cannot be empty.', 400);
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/resumes/ats-score`, {
+      method: 'POST',
+      headers: getHeaders({ 'Content-Type': 'application/json' }),
+      credentials: 'include',
+      body: JSON.stringify({ targetRoleOrJobDescription: trimmed }),
+    });
+
+    return await handleResponse<AtsScoreResult>(res);
+  } catch (err: unknown) {
+    if (err instanceof ResumeApiError) {
+      throw err;
+    }
+    throw new ResumeApiError(
+      'Unable to connect to the ResumeIQ server. Please check your network or ensure the server is running.',
+      0
+    );
   }
 }

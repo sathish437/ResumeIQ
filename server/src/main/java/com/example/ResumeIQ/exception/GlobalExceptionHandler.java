@@ -71,6 +71,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AiServiceException.class)
     public ResponseEntity<ApiErrorResponse> handleAiService(AiServiceException ex,
                                                             HttpServletRequest request) {
+        log.error("AI service error on {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         return error(HttpStatus.BAD_GATEWAY, ex.getMessage(), null, request);
     }
 
