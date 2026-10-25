@@ -336,7 +336,7 @@ export const CustomJobDescriptionPanel: React.FC<CustomJobDescriptionPanelProps>
               <button
                 type="button"
                 className={`btn ${activeTab === 'role' ? 'btn-primary' : 'btn-outline'}`}
-                style={{ fontSize: '0.78rem', padding: '6px 14px' }}
+                style={{ fontSize: '0.78rem', padding: '8px 14px', flex: '1 1 180px', justifyContent: 'center', minHeight: '40px' }}
                 onClick={() => {
                   setActiveTab('role');
                   setValidationError(null);
@@ -350,7 +350,7 @@ export const CustomJobDescriptionPanel: React.FC<CustomJobDescriptionPanelProps>
               <button
                 type="button"
                 className={`btn ${activeTab === 'jd' ? 'btn-primary' : 'btn-outline'}`}
-                style={{ fontSize: '0.78rem', padding: '6px 14px' }}
+                style={{ fontSize: '0.78rem', padding: '8px 14px', flex: '1 1 180px', justifyContent: 'center', minHeight: '40px' }}
                 onClick={() => {
                   setActiveTab('jd');
                   setValidationError(null);
@@ -654,13 +654,14 @@ export const CustomJobDescriptionPanel: React.FC<CustomJobDescriptionPanelProps>
                   marginTop: '16px',
                   borderTop: '1px solid var(--border-subtle)',
                   paddingTop: '12px',
+                  flexWrap: 'wrap',
                 }}
               >
                 {activeCustomTarget && (
                   <button
                     type="button"
                     className="btn btn-outline"
-                    style={{ fontSize: '0.76rem', padding: '6px 12px' }}
+                    style={{ fontSize: '0.76rem', padding: '8px 14px', minHeight: '42px', flex: '1 1 140px' }}
                     onClick={handleClear}
                     disabled={isAnalyzing}
                   >
@@ -673,7 +674,7 @@ export const CustomJobDescriptionPanel: React.FC<CustomJobDescriptionPanelProps>
                   type="submit"
                   className="btn btn-primary"
                   whileTap={{ scale: 0.97 }}
-                  style={{ fontSize: '0.82rem', padding: '7px 18px' }}
+                  style={{ fontSize: '0.82rem', padding: '8px 18px', minHeight: '42px', flex: '1 1 200px' }}
                   disabled={
                     isAnalyzing ||
                     (activeTab === 'role' && !selectedPresetRole && !customRoleInput.trim()) ||
@@ -683,12 +684,12 @@ export const CustomJobDescriptionPanel: React.FC<CustomJobDescriptionPanelProps>
                   {isAnalyzing ? (
                     <>
                       <span className="spinner" style={{ width: '13px', height: '13px' }} />
-                      <span>Analyzing & Generating Roadmap...</span>
+                      <span>Analyzing &amp; Generating Roadmap...</span>
                     </>
                   ) : (
                     <>
                       <Target size={14} />
-                      <span>Analyze & Generate Roadmap</span>
+                      <span>Analyze &amp; Generate Roadmap</span>
                     </>
                   )}
                 </motion.button>

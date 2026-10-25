@@ -81,7 +81,7 @@ export const RoleSkillGapQuadrant: React.FC<RoleSkillGapQuadrantProps> = ({
           paddingBottom: '12px',
         }}
       >
-        <div>
+        <div style={{ minWidth: 0, flex: '1 1 240px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
             <span className="badge badge-primary" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>
               Selected Role
@@ -95,11 +95,12 @@ export const RoleSkillGapQuadrant: React.FC<RoleSkillGapQuadrantProps> = ({
           </div>
           <h2
             style={{
-              fontSize: '1.15rem',
+              fontSize: 'clamp(1rem, 3.5vw, 1.15rem)',
               fontWeight: 800,
               color: 'var(--text-main)',
               letterSpacing: '-0.02em',
               margin: '2px 0',
+              wordBreak: 'break-word',
             }}
           >
             {role.title} — Skill Gap Analysis
@@ -113,7 +114,7 @@ export const RoleSkillGapQuadrant: React.FC<RoleSkillGapQuadrantProps> = ({
           <button
             type="button"
             className="btn btn-outline"
-            style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+            style={{ fontSize: '0.74rem', padding: '6px 12px', minHeight: '34px' }}
             onClick={isAnyExpanded ? collapseAll : expandAll}
           >
             {isAnyExpanded ? 'Collapse Details' : 'Expand Details'}
@@ -128,7 +129,8 @@ export const RoleSkillGapQuadrant: React.FC<RoleSkillGapQuadrantProps> = ({
               disabled={isDeepAnalyzing}
               style={{
                 fontSize: '0.74rem',
-                padding: '5px 10px',
+                padding: '6px 12px',
+                minHeight: '34px',
               }}
               title="Run deep AI verification for this role"
             >
@@ -422,7 +424,7 @@ export const RoleSkillGapQuadrant: React.FC<RoleSkillGapQuadrantProps> = ({
                         onClick={() => toggleSkill(key)}
                         style={{
                           width: '100%',
-                          padding: '7px 10px',
+                          padding: '8px 10px',
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
@@ -430,13 +432,15 @@ export const RoleSkillGapQuadrant: React.FC<RoleSkillGapQuadrantProps> = ({
                           border: 'none',
                           cursor: 'pointer',
                           textAlign: 'left',
+                          minHeight: '38px',
+                          gap: '6px',
                         }}
                       >
-                        <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)', wordBreak: 'break-word', minWidth: 0, flex: '1 1 auto' }}>
                           {item.skill}
                         </span>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                           <span className="badge badge-amber" style={{ fontSize: '0.62rem', padding: '1px 4px' }}>
                             Needs Depth
                           </span>
@@ -544,7 +548,7 @@ export const RoleSkillGapQuadrant: React.FC<RoleSkillGapQuadrantProps> = ({
                         onClick={() => toggleSkill(key)}
                         style={{
                           width: '100%',
-                          padding: '7px 10px',
+                          padding: '8px 10px',
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
@@ -552,13 +556,15 @@ export const RoleSkillGapQuadrant: React.FC<RoleSkillGapQuadrantProps> = ({
                           border: 'none',
                           cursor: 'pointer',
                           textAlign: 'left',
+                          minHeight: '38px',
+                          gap: '6px',
                         }}
                       >
-                        <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)', wordBreak: 'break-word', minWidth: 0, flex: '1 1 auto' }}>
                           {item.skill}
                         </span>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                           <span className="badge badge-danger" style={{ fontSize: '0.62rem', padding: '1px 4px' }}>
                             To Learn
                           </span>

@@ -213,8 +213,10 @@ export const PersonalizedRoadmapSection: React.FC<PersonalizedRoadmapSectionProp
                   onClick={() => toggleStep(step.id)}
                   aria-label={isDone ? `Mark Step ${step.stepNumber} incomplete` : `Mark Step ${step.stepNumber} complete`}
                   style={{
-                    width: '26px',
-                    height: '26px',
+                    width: '30px',
+                    height: '30px',
+                    minWidth: '30px',
+                    minHeight: '30px',
                     borderRadius: 'var(--radius-full)',
                     backgroundColor: isDone ? '#10b981' : 'var(--bg-surface-subtle)',
                     border: isDone ? '1px solid #10b981' : '1.5px solid var(--border-main)',
@@ -223,7 +225,7 @@ export const PersonalizedRoadmapSection: React.FC<PersonalizedRoadmapSectionProp
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    fontSize: '0.72rem',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     zIndex: 2,
                     boxShadow: isDone ? '0 1px 4px rgba(16, 185, 129, 0.3)' : 'none',
@@ -231,7 +233,7 @@ export const PersonalizedRoadmapSection: React.FC<PersonalizedRoadmapSectionProp
                   }}
                   title={isDone ? 'Completed (click to undo)' : 'Mark completed'}
                 >
-                  {isDone ? <CheckCircle2 size={14} /> : step.stepNumber}
+                  {isDone ? <CheckCircle2 size={15} /> : step.stepNumber}
                 </button>
 
                 {/* Vertical Line to next step */}
@@ -266,12 +268,14 @@ export const PersonalizedRoadmapSection: React.FC<PersonalizedRoadmapSectionProp
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     cursor: 'pointer',
+                    gap: '8px',
+                    flexWrap: 'wrap',
                   }}
                   onClick={() => setExpandedStepId(isExpanded ? '' : step.id)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', minWidth: 0, flex: '1 1 180px' }}>
                     <span
                       style={{
                         fontSize: '0.66rem',
@@ -291,6 +295,7 @@ export const PersonalizedRoadmapSection: React.FC<PersonalizedRoadmapSectionProp
                         color: isDone ? 'var(--text-muted)' : 'var(--text-main)',
                         margin: 0,
                         textDecoration: isDone ? 'line-through' : 'none',
+                        wordBreak: 'break-word',
                       }}
                     >
                       {step.title}
@@ -318,7 +323,7 @@ export const PersonalizedRoadmapSection: React.FC<PersonalizedRoadmapSectionProp
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: 'auto' }}>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -326,9 +331,10 @@ export const PersonalizedRoadmapSection: React.FC<PersonalizedRoadmapSectionProp
                         toggleStep(step.id);
                       }}
                       style={{
-                        fontSize: '0.68rem',
+                        fontSize: '0.72rem',
                         fontWeight: 600,
-                        padding: '2px 6px',
+                        padding: '4px 8px',
+                        minHeight: '30px',
                         borderRadius: 'var(--radius-sm)',
                         border: isDone ? '1px solid var(--emerald-border)' : '1px solid var(--border-subtle)',
                         backgroundColor: isDone ? 'var(--emerald-subtle)' : 'var(--bg-surface)',
@@ -336,10 +342,10 @@ export const PersonalizedRoadmapSection: React.FC<PersonalizedRoadmapSectionProp
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '3px',
+                        gap: '4px',
                       }}
                     >
-                      {isDone ? <CheckCircle2 size={11} /> : <Circle size={11} />}
+                      {isDone ? <CheckCircle2 size={12} /> : <Circle size={12} />}
                       <span>{isDone ? 'Done' : 'Mark Done'}</span>
                     </button>
 
@@ -369,12 +375,12 @@ export const PersonalizedRoadmapSection: React.FC<PersonalizedRoadmapSectionProp
                       }}
                     >
                       {/* What to do & Why it matters */}
-                      <div style={{ fontSize: '0.76rem', color: 'var(--text-main)', lineHeight: 1.45 }}>
+                      <div style={{ fontSize: '0.76rem', color: 'var(--text-main)', lineHeight: 1.45, wordBreak: 'break-word' }}>
                         <strong style={{ color: 'var(--text-main)', marginRight: '4px' }}>Objective:</strong>
                         {step.whatToDo}
                       </div>
 
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4, display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4, display: 'flex', alignItems: 'flex-start', gap: '4px', wordBreak: 'break-word' }}>
                         <HelpCircle size={11} style={{ flexShrink: 0, marginTop: '3px', color: 'var(--text-subtle)' }} />
                         <span><strong>Why it matters:</strong> {step.whyItMatters}</span>
                       </div>
@@ -391,10 +397,11 @@ export const PersonalizedRoadmapSection: React.FC<PersonalizedRoadmapSectionProp
                           display: 'flex',
                           alignItems: 'flex-start',
                           gap: '6px',
+                          wordBreak: 'break-word',
                         }}
                       >
                         <Target size={12} style={{ color: '#ef4444', flexShrink: 0, marginTop: '2px' }} />
-                        <div>
+                        <div style={{ wordBreak: 'break-word' }}>
                           <strong style={{ color: 'var(--text-main)' }}>Completion Criterion: </strong>
                           {step.practicalTask}
                         </div>

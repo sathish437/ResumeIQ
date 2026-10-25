@@ -293,11 +293,11 @@ export const CareerProfileCard: React.FC<CareerProfileCardProps> = ({ profile, f
                   <span
                     key={sIdx}
                     className={isProjectBacked ? 'badge badge-success' : 'badge badge-gray'}
-                    style={{ fontSize: '0.7rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                    style={{ fontSize: '0.7rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '3px', wordBreak: 'break-word', maxWidth: '100%' }}
                     title={isProjectBacked ? 'Verified in both skills section & projects' : 'Found in skills section'}
                   >
-                    {isProjectBacked && <CheckCircle2 size={10} />}
-                    {skill}
+                    {isProjectBacked && <CheckCircle2 size={10} style={{ flexShrink: 0 }} />}
+                    <span>{skill}</span>
                   </span>
                 );
               })
@@ -343,25 +343,25 @@ export const CareerProfileCard: React.FC<CareerProfileCardProps> = ({ profile, f
                     padding: '6px 8px',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px', flexWrap: 'wrap', gap: '4px' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-main)', wordBreak: 'break-word' }}>
                       {proj.name || `Project ${pIdx + 1}`}
                     </span>
                     {proj.technologies && proj.technologies.length > 0 && (
-                      <span className="badge badge-gray" style={{ fontSize: '0.62rem', padding: '1px 4px' }}>
+                      <span className="badge badge-gray" style={{ fontSize: '0.62rem', padding: '1px 4px', flexShrink: 0 }}>
                         {proj.technologies.length} tech
                       </span>
                     )}
                   </div>
                   {proj.description && (
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.3, marginBottom: '3px' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.3, marginBottom: '3px', wordBreak: 'break-word' }}>
                       {proj.description.length > 90 ? `${proj.description.slice(0, 90)}...` : proj.description}
                     </div>
                   )}
                   {proj.technologies && proj.technologies.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
                       {proj.technologies.slice(0, 4).map((tech, tIdx) => (
-                        <span key={tIdx} className="badge badge-sky" style={{ fontSize: '0.64rem', padding: '1px 4px' }}>
+                        <span key={tIdx} className="badge badge-sky" style={{ fontSize: '0.64rem', padding: '1px 4px', wordBreak: 'break-word', maxWidth: '100%' }}>
                           {tech}
                         </span>
                       ))}
